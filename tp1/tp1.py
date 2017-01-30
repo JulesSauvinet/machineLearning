@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 
 target[target=='+']=1
 target[target=='-']=0
-#plt.hist(target, bins=2)  # plt.hist passes it's arguments to np.histogram
+plt.hist(target, bins=2)  # plt.hist passes it's arguments to np.histogram
 #plt.title("+ and -")
 #plt.show()
 
@@ -75,19 +75,19 @@ clf_init = None
 clfs =	{
     'NBS' : GaussianNB(), #Naive Bayes Classifier
     'RF':	RandomForestClassifier(n_estimators=20), #Random Forest
-    'KNN':	KNeighborsClassifier(n_neighbors=12, weights='uniform', algorithm='auto', p=2, metric='minkowski'), #K plus proches voisins
-    'CART':  tree.DecisionTreeClassifier(criterion='gini'), #Arbres de décision CART
-    'ADAB' : AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), #Adaboost avec arbre de décision
+    'KNN':	KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'), #K plus proches voisins
+    'CART':  tree.DecisionTreeClassifier(min_samples_split=300, random_state=99,criterion='gini'), #Arbres de décision CART
+    'ADAB' : AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'), #Adaboost avec arbre de décision
                          algorithm="SAMME",
-                         n_estimators=10),
-    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100, 6), random_state=1, learning_rate = 'adaptive'), # MLP perceptron multi-couches,
+                         n_estimators=50),
+    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'), # MLP perceptron multi-couches,
     'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1,
-                             n_estimators=6, subsample=0.3,
+                             n_estimators=10, subsample=0.3,
                              min_samples_split=2,
                              min_samples_leaf=1,
-                             max_depth=3,
+                             max_depth=1,
                              init=clf_init,
-                             random_state=None,
+                             random_state=1,
                              max_features=None,
                              verbose=0) #Gradient boosting classifier
      #liste	a completer
@@ -139,7 +139,7 @@ def run_classifiers(clfs, credit):
 #run_classifiers(clfs,credit)
 #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
 #SANS NORMALISATION
-print "Sans centrage des données au prélable"
+print "Sans centrage des données au préalable"
 #run_classifiers(clfs,credit)
 
 standardScaler = preprocessing.StandardScaler(copy=True, with_mean=True, with_std=False)
@@ -149,7 +149,7 @@ scaleCredit = {'data': scalePred, 'target': target}
 
 #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
 #AVEC NORMALISATION
-print "Avec centrage standard des données au prélable"
+print "Avec centrage standard des données au préalable"
 #run_classifiers(clfs,scaleCredit)
 
 
@@ -157,11 +157,11 @@ minMaxScaler = preprocessing.MinMaxScaler(copy=True)
 scalePred2 = minMaxScaler.fit(predictor).transform(predictor)
 scaleCredit2 = {'data': scalePred2, 'target': target}
 
-print "Avec centrage selon min et max des données au prélable"
+print "Avec centrage selon min et max des données au préalable"
 #run_classifiers(clfs,scaleCredit2)
 
 pca = PCA(n_components=0)
-print "Avec pca au prélable"
+print "Avec pca au préalable"
 for i in range(6):
     pca = PCA(n_components=i)
     pca.fit(scalePred2)
@@ -169,14 +169,13 @@ for i in range(6):
         break
 
 pcaPred = pca.transform(scalePred2)
-
 pcaPred2 = np.concatenate((scalePred2, pcaPred), axis=1)
 
 pcaCredit = {'data': pcaPred2, 'target': target}
 #run_classifiers(clfs,pcaCredit)
 
 
-print "Avec combinaisons polynomiales des données faites au prélable"
+print "Avec combinaisons polynomiales des données faites au préalable"
 poly = PolynomialFeatures(2)
 polyPred = poly.fit_transform(pcaPred2)
 polyCredit = {'data': polyPred, 'target': target}

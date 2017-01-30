@@ -1,0 +1,91 @@
+Sans centrage des données au préalable
+* --------------------------------------------------------------------------- *
+Classifieur  KNN  :
+Moyenne de l'accuracy du classifieur :  0.688602442334
+Ecart-type de l'accuracy du classifieur :  0.0631708204934
+Moyenne de l'AUC du classifieur :  0.713029007576
+Ecart-type de l'AUC du classifieur :  0.0604625889187
+Moyenne de la précision + du classifieur :  0.726691855902
+Ecart-type de la précision + du classifieur :  0.071346858254
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  0.124000072479  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  GBC  :
+Moyenne de l'accuracy du classifieur :  0.754703753957
+Ecart-type de l'accuracy du classifieur :  0.0482035965972
+Moyenne de l'AUC du classifieur :  0.824815809373
+Ecart-type de l'AUC du classifieur :  0.0374174221076
+Moyenne de la précision + du classifieur :  0.828372118078
+Ecart-type de la précision + du classifieur :  0.124826856981
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  0.238999843597  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  NBS  :
+Moyenne de l'accuracy du classifieur :  0.71433740389
+Ecart-type de l'accuracy du classifieur :  0.0581826802716
+Moyenne de l'AUC du classifieur :  0.791437184118
+Ecart-type de l'AUC du classifieur :  0.0574566002513
+Moyenne de la précision + du classifieur :  0.853591010439
+Ecart-type de la précision + du classifieur :  0.102021066568
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  0.0789999961853  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  MLP  :
+Moyenne de l'accuracy du classifieur :  0.714111261872
+Ecart-type de l'accuracy du classifieur :  0.0564015418742
+Moyenne de l'AUC du classifieur :  0.721094967983
+Ecart-type de l'AUC du classifieur :  0.0726018896187
+Moyenne de la précision + du classifieur :  0.742298842106
+Ecart-type de la précision + du classifieur :  0.126622557659
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  14.1210000515  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  CART  :
+Moyenne de l'accuracy du classifieur :  0.691587516961
+Ecart-type de l'accuracy du classifieur :  0.0380925202613
+Moyenne de l'AUC du classifieur :  0.6959636145
+Ecart-type de l'AUC du classifieur :  0.0396133934173
+Moyenne de la précision + du classifieur :  0.664604767426
+Ecart-type de la précision + du classifieur :  0.079170050067
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  0.167000055313  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  RF  :
+Moyenne de l'accuracy du classifieur :  0.765287200362
+Ecart-type de l'accuracy du classifieur :  0.0495351635453
+Moyenne de l'AUC du classifieur :  0.820243318616
+Ecart-type de l'AUC du classifieur :  0.050449070034
+Moyenne de la précision + du classifieur :  0.800021870144
+Ecart-type de la précision + du classifieur :  0.0792813600784
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  2.63499999046  secondes
+
+* --------------------------------------------------------------------------- *
+
+* --------------------------------------------------------------------------- *
+Classifieur  ADAB  :
+Moyenne de l'accuracy du classifieur :  0.744165535957
+Ecart-type de l'accuracy du classifieur :  0.0555486967183
+Moyenne de l'AUC du classifieur :  0.817115812779
+Ecart-type de l'AUC du classifieur :  0.0430939811251
+Moyenne de la précision + du classifieur :  0.753548503156
+Ecart-type de la précision + du classifieur :  0.0679262384087
+
+Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  :  0.849999904633  secondes
+
+* --------------------------------------------------------------------------- *
