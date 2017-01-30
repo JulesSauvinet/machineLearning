@@ -132,7 +132,7 @@ def run_classifiers(clfs, credit):
 
 
 def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, withMinMaxNorm = False,withPCA = False, withPoly = False):
-    #run_classifiers(clfs,credit)
+
     #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
 
 	# ------------------------------------------------------- SANS NORMALISATION -------------------------------------------------------
