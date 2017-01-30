@@ -231,34 +231,32 @@ pred_not_cat = imp_mean.fit_transform(pred_not_cat)
 imp_most_frequent = Imputer(missing_values='NaN', strategy='most_frequent', axis=0)
 pred_cat = imp_most_frequent.fit_transform(pred_cat)
 
-enc = OneHotEncoder(categorical_features='all',
-    handle_unknown='error', n_values='auto', sparse=True)
-
-
+# on transforme chaque variable categorielle avec m modalités en m variables binaires ---> une seule sera active
+enc = OneHotEncoder(categorical_features='all',handle_unknown='error', n_values='auto', sparse=True)
 enc.fit(pred_cat[:, [0,1,2,3,4,5,6,7,8]])
 pred_cat_bin = enc.transform(pred_cat[:, [0,1,2,3,4,5,6,7,8]]).toarray()
 
+# --------- preparation du jeu de donnees avec toutes les concatenations ---------
+
+# on normalise les donnees numeriques
 minMaxScaler = preprocessing.MinMaxScaler(copy=True)
 scale_pred_not_cat = minMaxScaler.fit(pred_not_cat).transform(pred_not_cat)
 
+# on cree un polynome de degres 2 et on concatene ensemble les donnees de poly, les donnees non-cat, les donnees de l'ACP et les donnees non-cat binaires encodees
 poly = PolynomialFeatures(2)
 polyPred = poly.fit_transform(scale_pred_not_cat)
-scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
 
-predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
-
-#print np.shape(predictNorm)
 pca = PCA(n_components=0)
 for i in range(46):
     pca = PCA(n_components=i)
     pca.fit(predictNorm)
     if np.sum(pca.explained_variance_ratio_) > 0.7:
         break
-
 predictNormPCA = pca.transform(predictNorm)
-predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 
-#print np.shape(predictNormWithPCA)
+predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
+scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
+predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
 
 target = transformTargetInBinary(target)
 
