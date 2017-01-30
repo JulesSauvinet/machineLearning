@@ -1,7 +1,9 @@
 # coding=utf-8
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
+importwarnings
 import time
 import csv
 
@@ -16,10 +18,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import PolynomialFeatures,StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
-import pandas as pd
-import numpy as np
 np.set_printoptions(threshold=np.nan)
-import	warnings
 warnings.filterwarnings('ignore')
 
 # ------------------------------------------------------- PREPARATION DES DONNEES -------------------------------------------------------
