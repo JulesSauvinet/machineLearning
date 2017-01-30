@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-importwarnings
+import warnings
 import time
 import csv
 
@@ -16,7 +16,7 @@ from sklearn.model_selection import KFold,cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import PolynomialFeatures,StandardScaler
+from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 
 np.set_printoptions(threshold=np.nan)
@@ -248,21 +248,22 @@ scale_pred_not_cat = minMaxScaler.fit(pred_not_cat).transform(pred_not_cat)
 poly = PolynomialFeatures(3)
 polyPred = poly.fit_transform(scale_pred_not_cat)
 
+scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
+predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
+
 pca = PCA(n_components=0)
 for i in range(46):
     pca = PCA(n_components=i)
     pca.fit(predictNorm)
     if np.sum(pca.explained_variance_ratio_) > 0.7:
         break
+		
 predictNormPCA = pca.transform(predictNorm)
-
-scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
-predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
 predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 
-print np.shape(predictNormWithPCA)
 
-# on obtient un jeu de donnees complet nomme "predictNorm"
+print np.shape(predictNormWithPCA)
+# on obtient un jeu de donnees complet nomme "predictNormWithPCA"
 
 # --------------------------------------------------------------------------------
 
@@ -290,4 +291,5 @@ clfsRF = {
 }
 
 run_classifiers(clfsRF,creditNormalized)
+
 
