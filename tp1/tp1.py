@@ -28,12 +28,14 @@ warnings.filterwarnings('ignore')
 
 df=pd.read_csv('credit.data', sep='\t')
 
+# on scinde les donnees de la valeur de prediction
 predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
 target = df.values[:,15]
 
 
 def deleteRowsWithNan(predictor, target):
     predictor = predictor[:, [1, 2, 7, 10, 13, 14]]
+    # on modifie les '?' par des NaN, et on supprime la ligne dans target qui, dans les donnees, contient un NaN
     for j in range(len(predictor)):
         pred = predictor[j]
         toDelete = False
@@ -44,6 +46,7 @@ def deleteRowsWithNan(predictor, target):
         if toDelete :
             target = np.delete(target, (j), axis=0)
 
+    #on met toutes les valeurs au format numerique, et on supprime les lignes de donnees contenant des NaN
     predictor = predictor.astype(np.float)
     predictor = predictor[~np.isnan(predictor).any(axis=1)]
 
