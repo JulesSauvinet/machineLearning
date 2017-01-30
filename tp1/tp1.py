@@ -223,9 +223,11 @@ for j in range(len(pred_not_cat)):
 pred_cat = pred_cat.astype(np.float)
 pred_not_cat = pred_not_cat.astype(np.float)
 
+# on remplace les donnees manquantes non categorielles '?' par la moyenne des valeurs existantes
 imp_mean = Imputer(missing_values='NaN', strategy='mean', axis=0)
 pred_not_cat = imp_mean.fit_transform(pred_not_cat)
 
+# on remplace les donnees manquantes categorielles '?' par la valeur la plus fréquente
 imp_most_frequent = Imputer(missing_values='NaN', strategy='most_frequent', axis=0)
 pred_cat = imp_most_frequent.fit_transform(pred_cat)
 
