@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import matplotlib.pyplot as plt
 import numpy as np
 import time
 import csv
@@ -21,39 +22,41 @@ np.set_printoptions(threshold=np.nan)
 import	warnings
 warnings.filterwarnings('ignore')
 
-ALPHA = 2
 
+# ------------------------------------------------------- PREPARATION DES DONNEES -------------------------------------------------------
+ALPHA = 2
 df=pd.read_csv('credit.data', sep='\t')
 
+# on scinde les donnees de la valeur de prediction
 predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
 target = df.values[:,15]
 
+# on ne garde que les valeurs numeriques
 predictor = predictor[:,[1,2,7,10,13,14]]
 
-for j in range(len(predictor)):
+# on modifie les '?' par des NaN, et on supprime la ligne dans target qui, dans les donnees, contient un NaN
+for j in range(len(predictor)) :
     pred = predictor[j]
     toDelete = False
-    for i in range(len(pred)):
-        if pred[i] == '?':
+    for i in range(len(pred)) :
+        if pred[i] == '?' :
             pred[i] = np.nan
             toDelete = True
     if toDelete :
         target = np.delete(target, (j), axis=0)
 
+# on met toutes les valeurs au format numerique, et on supprime les lignes de donnees contenant des NaN
 predictor = predictor.astype(np.float)
-
 predictor = predictor[~np.isnan(predictor).any(axis=1)]
 
-import matplotlib.pyplot as plt
-
-target[target=='+']=1
-target[target=='-']=0
-plt.hist(target, bins=2)
-#plt.hist passes it's arguments to np.histogram
+# affichage de l'histogramme
+#target[target=='+']=1
+#target[target=='-']=0
+#plt.hist(target, bins=2)
 #plt.title("+ and -")
 #plt.show()
 
-#print np.shape(predictor)
+print "On a " + np.shape(predictor) + " lignes dans les donnees"
 #print np.shape(target)
 
 df.predictor = predictor
@@ -63,7 +66,7 @@ target=target.astype(np.float)
 
 credit = {'data': predictor, 'target': target}
 
-#Test du Naive Bayes
+#Fonction pour le test du Naive Bayes
 def NaiveBayesSimple(credit) :
     gnb = GaussianNB()
     y_pred = gnb.fit(credit['data'], credit['target']).predict(credit['data'])
@@ -120,7 +123,7 @@ def run_classifiers(clfs, credit):
 
         print "Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  : ", timeExec," secondes"
         print ""
-        print "*",'-'*100,"*"
+        print "*",'-'*75,"*"
         print ""
 
 
@@ -129,7 +132,7 @@ def run_classifiers(clfs, credit):
 
 # ------------------------------------------------------- SANS NORMALISATION -------------------------------------------------------
 print "Sans centrage des données au préalable"
-run_classifiers(clfs,credit)
+#run_classifiers(clfs,credit)
 # ----------------------------------------------------------------------------------------------------------------------------------       
 
 
@@ -138,7 +141,7 @@ standardScaler = preprocessing.StandardScaler(copy=True, with_mean=True, with_st
 scalePred = standardScaler.fit(predictor).transform(predictor)
 scaleCredit = {'data': scalePred, 'target': target}
 print "Avec centrage standard des données au préalable"
-run_classifiers(clfs,scaleCredit)
+#run_classifiers(clfs,scaleCredit)
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -148,7 +151,7 @@ minMaxScaler = preprocessing.MinMaxScaler(copy=True)
 scalePred2 = minMaxScaler.fit(predictor).transform(predictor)
 scaleCredit2 = {'data': scalePred2, 'target': target}
 print "Avec centrage selon min et max des données au préalable"
-run_classifiers(clfs,scaleCredit2)
+#run_classifiers(clfs,scaleCredit2)
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -165,7 +168,7 @@ pcaPred2 = np.concatenate((scalePred2, pcaPred), axis=1)
 pcaCredit = {'data': pcaPred2, 'target': target}
 
 print "Avec pca au préalable"
-run_classifiers(clfs,pcaCredit)
+#run_classifiers(clfs,pcaCredit)
 # ----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -174,5 +177,5 @@ poly = PolynomialFeatures(2)
 polyPred = poly.fit_transform(pcaPred2)
 polyCredit = {'data': polyPred, 'target': target}
 print "Avec combinaisons polynomiales des données faites au préalable"
-run_classifiers(clfs,polyCredit)
+#run_classifiers(clfs,polyCredit)
 # ----------------------------------------------------------------------------------------------------------------------------------
