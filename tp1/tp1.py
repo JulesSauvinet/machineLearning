@@ -258,6 +258,10 @@ predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
 predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
 
+# on obtient un jeu de donnees complet nomme "predictNorm"
+
+# --------------------------------------------------------------------------------
+
 target = transformTargetInBinary(target)
 
 creditNormalized  = {'data': predictNormWithPCA, 'target': target}
