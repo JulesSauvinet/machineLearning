@@ -197,9 +197,8 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
 #credit = {'data': predictor, 'target': target}
 #test_classifiers(credit, False,False,False,False,True)
 
-
+# on recupere les donnees categorielles en prenant soin de remplacer les '?'
 pred_cat =	predictor[:,[0,3,4,5,6,8,9,11,12]]
-
 for	col_id	in range(len(pred_cat[0])):
     unique_val,	val_idx	= np.unique(pred_cat[:,col_id],	return_inverse=True)
 
@@ -212,6 +211,7 @@ for	col_id	in range(len(pred_cat[0])):
 
     pred_cat[:,col_id]	= val_idx
 
+# on recupere les donnees non categorielles en prenant soin de remplacer les '?'
 pred_not_cat = predictor[:, [1, 2, 7, 10, 13, 14]]
 for j in range(len(pred_not_cat)):
     pred = pred_not_cat[j]
@@ -219,6 +219,7 @@ for j in range(len(pred_not_cat)):
         if pred[i] == '?':
             pred[i] = np.nan
 
+# on met les donnees categorielles et non-categorielles au format numerique
 pred_cat = pred_cat.astype(np.float)
 pred_not_cat = pred_not_cat.astype(np.float)
 
