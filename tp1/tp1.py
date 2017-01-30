@@ -59,13 +59,12 @@ def transformTargetInBinary(target):
     return target
 
 def plotTargetDist(target):
-    plt.hist(target, bins=2)  # plt.hist passes it's arguments to np.histogram
+    plt.hist(target, bins=2)
     plt.title("+ and -")
     plt.show()
 
 #print "On a " + np.shape(predictor) + " lignes dans les donnees"
 #print np.shape(target)
-#print target
 
 #Fonction pour le test du Naive Bayes
 def NaiveBayesSimple(credit) :
@@ -84,16 +83,9 @@ clfs =	{
                          algorithm="SAMME",
                          n_estimators=50),
     'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'), # MLP perceptron multi-couches,
-    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1,
-                             n_estimators=10, subsample=0.3,
-                             min_samples_split=2,
-                             min_samples_leaf=1,
-                             max_depth=1,
-                             init=clf_init,
-                             random_state=1,
-                             max_features=None,
-                             verbose=0) #Gradient boosting classifier
-     #liste	a completer
+    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=10, subsample=0.3,
+                                        min_samples_split=2, min_samples_leaf=1, max_depth=1, init=clf_init,
+                                        random_state=1, max_features=None, verbose=0) #Gradient boosting classifier
 }
 
 def run_classifiers(clfs, credit):
