@@ -1,36 +1,28 @@
 # coding=utf-8
+
+import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
+importwarnings
 import time
+import csv
+
 from sklearn import datasets, preprocessing
+from sklearn import tree
 from sklearn.decomposition import PCA
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import SelectPercentile
-from sklearn.feature_selection import chi2
-from sklearn.feature_selection import f_classif
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.model_selection import KFold
-from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import GradientBoostingClassifier,RandomForestClassifier
+from sklearn.feature_selection import SelectKBest,SelectPercentile,chi2,f_classif,mutual_info_classif
+from sklearn.model_selection import KFold,cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import Imputer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures,StandardScaler
 from sklearn.tree import DecisionTreeClassifier
-from sklearn import tree
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.preprocessing import StandardScaler
-import csv
 
-import pandas as pd
-import	numpy	as	np
-import matplotlib.pyplot as plt
 np.set_printoptions(threshold=np.nan)
-import	warnings
 warnings.filterwarnings('ignore')
 
+# ------------------------------------------------------- PREPARATION DES DONNEES -------------------------------------------------------
 df=pd.read_csv('credit.data', sep='\t')
 
 # on scinde les donnees de la valeur de prediction
@@ -39,7 +31,10 @@ target = df.values[:,15]
 
 
 def deleteRowsWithNan(predictor, target):
+
+	# on ne garde que les valeurs numeriques
     predictor = predictor[:, [1, 2, 7, 10, 13, 14]]
+	
     # on modifie les '?' par des NaN, et on supprime la ligne dans target qui, dans les donnees, contient un NaN
     for j in range(len(predictor)):
         pred = predictor[j]
@@ -68,8 +63,8 @@ def plotTargetDist(target):
     plt.title("+ and -")
     plt.show()
 
-#print "On a " + np.shape(predictor) + " lignes dans les donnees"
-#print np.shape(target)
+#print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
+#print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
 
 #Fonction pour le test du Naive Bayes
 def NaiveBayesSimple(credit) :
@@ -135,36 +130,39 @@ def run_classifiers(clfs, credit):
         print ""
 
 
-def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, withMinMaxNorm = False,
-                     withPCA = False, withPoly = False):
-    #run_classifiers(clfs,credit)
+def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, withMinMaxNorm = False,withPCA = False, withPoly = False):
+
     #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
-    #SANS NORMALISATION
+
+	# ------------------------------------------------------- SANS NORMALISATION -------------------------------------------------------
     if (withoutNorm):
         print "Sans centrage des données au préalable"
         run_classifiers(clfs,credit)
+	# ----------------------------------------------------------------------------------------------------------------------------------       
+
 
     if (withStandardNorm):
         standardScaler = preprocessing.StandardScaler(copy=True, with_mean=True, with_std=False)
         scalePred = standardScaler.fit(predictor).transform(predictor)
         scaleCredit = {'data': scalePred, 'target': target}
-
-        #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
-        #AVEC NORMALISATION
         print "Avec centrage standard des données au préalable"
         run_classifiers(clfs,scaleCredit)
+	# ----------------------------------------------------------------------------------------------------------------------------------       
 
 
-    if (withMinMaxNorm or withPCA  or withPoly  == True):
+
+    if (withMinMaxNorm or withPCA or withPoly  == True):
         minMaxScaler = preprocessing.MinMaxScaler(copy=True)
         scalePred2 = minMaxScaler.fit(predictor).transform(predictor)
         scaleCredit2 = {'data': scalePred2, 'target': target}
 
+		#---------------------------------------------------- AVEC NORMALISATION (MIN,MAX) -------------------------------------------------
         if (withMinMaxNorm):
             print "Avec centrage selon min et max des données au préalable"
             run_classifiers(clfs,scaleCredit2)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
 
-
+		
         if (withPCA or withPoly  == True):
             pca = PCA(n_components=0)
             for i in range(6):
@@ -175,13 +173,15 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
 
             pcaPred = pca.transform(scalePred2)
             pcaPred2 = np.concatenate((scalePred2, pcaPred), axis=1)
-
             pcaCredit = {'data': pcaPred2, 'target': target}
 
+		#-------------------------------------------------------- AVEC L'ACP CONCATENEE ----------------------------------------------------
             if (withPCA):
                 print "Avec pca au préalable"
                 run_classifiers(clfs,pcaCredit)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
 
+		# --------------------------------------------------- AVEC COMBINAISONS POLYNOMIALES -----------------------------------------------
             if (withPoly):
                 poly = PolynomialFeatures(2)
                 polyPred = poly.fit_transform(pcaPred2)
@@ -189,15 +189,16 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
                 polyCredit = {'data': polyPred, 'target': target}
                 print "Avec combinaisons polynomiales des données faites au préalable"
                 run_classifiers(clfs,polyCredit)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
+
 
 #predictor, target = deleteRowsWithNan(predictor, target)
 #target = transformTargetInBinary(target)
 #credit = {'data': predictor, 'target': target}
 #test_classifiers(credit, False,False,False,False,True)
 
-
+# on recupere les donnees categorielles en prenant soin de remplacer les '?'
 pred_cat =	predictor[:,[0,3,4,5,6,8,9,11,12]]
-
 for	col_id	in range(len(pred_cat[0])):
     unique_val,	val_idx	= np.unique(pred_cat[:,col_id],	return_inverse=True)
 
@@ -210,6 +211,7 @@ for	col_id	in range(len(pred_cat[0])):
 
     pred_cat[:,col_id]	= val_idx
 
+# on recupere les donnees non categorielles en prenant soin de remplacer les '?'
 pred_not_cat = predictor[:, [1, 2, 7, 10, 13, 14]]
 for j in range(len(pred_not_cat)):
     pred = pred_not_cat[j]
@@ -217,43 +219,52 @@ for j in range(len(pred_not_cat)):
         if pred[i] == '?':
             pred[i] = np.nan
 
+# on met les donnees categorielles et non-categorielles au format numerique
 pred_cat = pred_cat.astype(np.float)
 pred_not_cat = pred_not_cat.astype(np.float)
 
+# on remplace les donnees manquantes non categorielles '?' par la moyenne des valeurs existantes
 imp_mean = Imputer(missing_values='NaN', strategy='mean', axis=0)
 pred_not_cat = imp_mean.fit_transform(pred_not_cat)
 
+# on remplace les donnees manquantes categorielles '?' par la valeur la plus fréquente
 imp_most_frequent = Imputer(missing_values='NaN', strategy='most_frequent', axis=0)
 pred_cat = imp_most_frequent.fit_transform(pred_cat)
 
-enc = OneHotEncoder(categorical_features='all',
-    handle_unknown='error', n_values='auto', sparse=True)
+# on transforme chaque variable categorielle avec m modalités en m variables binaires ---> une seule sera active
+enc = OneHotEncoder(categorical_features='all',handle_unknown='error', n_values='auto', sparse=True)
 
 enc.fit(pred_cat[:, [0,1,2,3,4,5,6,7,8]])
 pred_cat_bin = enc.transform(pred_cat[:, [0,1,2,3,4,5,6,7,8]]).toarray()
 
+# --------- preparation du jeu de donnees avec toutes les concatenations ---------
+
+# on normalise les donnees numeriques
 minMaxScaler = preprocessing.MinMaxScaler(copy=True)
 scale_pred_not_cat = minMaxScaler.fit(pred_not_cat).transform(pred_not_cat)
 #scale_pred_not_cat = pred_not_cat
 
+# on cree un polynome de degres 3 et on concatene ensemble les donnees de poly, les donnees non-cat, les donnees de l'ACP et les donnees non-cat binaires encodees
 poly = PolynomialFeatures(3)
 polyPred = poly.fit_transform(scale_pred_not_cat)
-scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
 
-predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
-
-#print np.shape(predictNorm)
 pca = PCA(n_components=0)
 for i in range(46):
     pca = PCA(n_components=i)
     pca.fit(predictNorm)
     if np.sum(pca.explained_variance_ratio_) > 0.7:
         break
-
 predictNormPCA = pca.transform(predictNorm)
+
+scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
+predictNorm = np.concatenate((scale_pred_not_cat_with_poly, pred_cat_bin), axis=1)
 predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 
 print np.shape(predictNormWithPCA)
+
+# on obtient un jeu de donnees complet nomme "predictNorm"
+
+# --------------------------------------------------------------------------------
 
 target = transformTargetInBinary(target)
 
