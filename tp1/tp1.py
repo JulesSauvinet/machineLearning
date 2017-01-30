@@ -5,6 +5,11 @@ from sklearn import datasets, preprocessing
 from sklearn.decomposition import PCA
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import SelectPercentile
+from sklearn.feature_selection import chi2
+from sklearn.feature_selection import f_classif
+from sklearn.feature_selection import mutual_info_classif
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -224,14 +229,14 @@ pred_cat = imp_most_frequent.fit_transform(pred_cat)
 enc = OneHotEncoder(categorical_features='all',
     handle_unknown='error', n_values='auto', sparse=True)
 
-
 enc.fit(pred_cat[:, [0,1,2,3,4,5,6,7,8]])
 pred_cat_bin = enc.transform(pred_cat[:, [0,1,2,3,4,5,6,7,8]]).toarray()
 
 minMaxScaler = preprocessing.MinMaxScaler(copy=True)
 scale_pred_not_cat = minMaxScaler.fit(pred_not_cat).transform(pred_not_cat)
+#scale_pred_not_cat = pred_not_cat
 
-poly = PolynomialFeatures(2)
+poly = PolynomialFeatures(3)
 polyPred = poly.fit_transform(scale_pred_not_cat)
 scale_pred_not_cat_with_poly = np.concatenate((scale_pred_not_cat, polyPred), axis=1)
 
@@ -248,11 +253,30 @@ for i in range(46):
 predictNormPCA = pca.transform(predictNorm)
 predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 
-#print np.shape(predictNormWithPCA)
+print np.shape(predictNormWithPCA)
 
 target = transformTargetInBinary(target)
 
-creditNormalized  = {'data': predictNormWithPCA, 'target': target}
+#COMMENT CHOISIR k?
+#selector = SelectKBest(mutual_info_classif, k = 80).fit(predictNormWithPCA,target)
+#selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
+selector = SelectPercentile(mutual_info_classif, percentile=70).fit(predictNormWithPCA,target)
 
-#run_classifiers(clfs,creditNormalized)
+predictNormWithPCASel = selector.transform(predictNormWithPCA) # not needed to get the score
+
+print np.shape(predictNormWithPCASel)
+
+scores = selector.scores_
+pvalues = selector.pvalues_
+#print scores
+#print pvalues
+#print np.shape(predictNormWithPCASel)
+
+creditNormalized  = {'data': predictNormWithPCASel, 'target': target}
+
+clfsRF = {
+    'RF':    RandomForestClassifier(n_estimators=20),  # Random Forest
+}
+
+run_classifiers(clfsRF,creditNormalized)
 
