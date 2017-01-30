@@ -1,31 +1,29 @@
 # coding=utf-8
+
+import matplotlib.pyplot as plt
 import numpy as np
 import time
+import csv
+
 from sklearn import datasets, preprocessing
+from sklearn import tree
 from sklearn.decomposition import PCA
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import KFold
-from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import GradientBoostingClassifier,RandomForestClassifier,AdaBoostClassifier
+from sklearn.model_selection import KFold,cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import Imputer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures,StandardScaler
 from sklearn.tree import DecisionTreeClassifier
-from sklearn import tree
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.preprocessing import StandardScaler
-import csv
 
 import pandas as pd
-import	numpy	as	np
-import matplotlib.pyplot as plt
+import numpy as np
 np.set_printoptions(threshold=np.nan)
 import	warnings
 warnings.filterwarnings('ignore')
 
+# ------------------------------------------------------- PREPARATION DES DONNEES -------------------------------------------------------
+ALPHA = 2
 df=pd.read_csv('credit.data', sep='\t')
 
 # on scinde les donnees de la valeur de prediction
@@ -34,7 +32,10 @@ target = df.values[:,15]
 
 
 def deleteRowsWithNan(predictor, target):
+
+	# on ne garde que les valeurs numeriques
     predictor = predictor[:, [1, 2, 7, 10, 13, 14]]
+	
     # on modifie les '?' par des NaN, et on supprime la ligne dans target qui, dans les donnees, contient un NaN
     for j in range(len(predictor)):
         pred = predictor[j]
@@ -63,8 +64,8 @@ def plotTargetDist(target):
     plt.title("+ and -")
     plt.show()
 
-#print "On a " + np.shape(predictor) + " lignes dans les donnees"
-#print np.shape(target)
+#print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
+#print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
 
 #Fonction pour le test du Naive Bayes
 def NaiveBayesSimple(credit) :
@@ -130,36 +131,39 @@ def run_classifiers(clfs, credit):
         print ""
 
 
-def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, withMinMaxNorm = False,
-                     withPCA = False, withPoly = False):
+def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, withMinMaxNorm = False,withPCA = False, withPoly = False):
     #run_classifiers(clfs,credit)
     #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
-    #SANS NORMALISATION
+
+	# ------------------------------------------------------- SANS NORMALISATION -------------------------------------------------------
     if (withoutNorm):
         print "Sans centrage des données au préalable"
         run_classifiers(clfs,credit)
+	# ----------------------------------------------------------------------------------------------------------------------------------       
+
 
     if (withStandardNorm):
         standardScaler = preprocessing.StandardScaler(copy=True, with_mean=True, with_std=False)
         scalePred = standardScaler.fit(predictor).transform(predictor)
         scaleCredit = {'data': scalePred, 'target': target}
-
-        #On run les 7 classifieurs et on affiche les mesures de qualité (Précision, Accuracy, AUC et temps d'exécution) pour comparer
-        #AVEC NORMALISATION
         print "Avec centrage standard des données au préalable"
         run_classifiers(clfs,scaleCredit)
+	# ----------------------------------------------------------------------------------------------------------------------------------       
 
 
-    if (withMinMaxNorm or withPCA  or withPoly  == True):
+
+    if (withMinMaxNorm or withPCA or withPoly  == True):
         minMaxScaler = preprocessing.MinMaxScaler(copy=True)
         scalePred2 = minMaxScaler.fit(predictor).transform(predictor)
         scaleCredit2 = {'data': scalePred2, 'target': target}
 
+		#---------------------------------------------------- AVEC NORMALISATION (MIN,MAX) -------------------------------------------------
         if (withMinMaxNorm):
             print "Avec centrage selon min et max des données au préalable"
             run_classifiers(clfs,scaleCredit2)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
 
-
+		
         if (withPCA or withPoly  == True):
             pca = PCA(n_components=0)
             for i in range(6):
@@ -170,13 +174,15 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
 
             pcaPred = pca.transform(scalePred2)
             pcaPred2 = np.concatenate((scalePred2, pcaPred), axis=1)
-
             pcaCredit = {'data': pcaPred2, 'target': target}
 
+		#-------------------------------------------------------- AVEC L'ACP CONCATENEE ----------------------------------------------------
             if (withPCA):
                 print "Avec pca au préalable"
                 run_classifiers(clfs,pcaCredit)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
 
+		# --------------------------------------------------- AVEC COMBINAISONS POLYNOMIALES -----------------------------------------------
             if (withPoly):
                 poly = PolynomialFeatures(2)
                 polyPred = poly.fit_transform(pcaPred2)
@@ -184,6 +190,8 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
                 polyCredit = {'data': polyPred, 'target': target}
                 print "Avec combinaisons polynomiales des données faites au préalable"
                 run_classifiers(clfs,polyCredit)
+		# ----------------------------------------------------------------------------------------------------------------------------------       
+
 
 #predictor, target = deleteRowsWithNan(predictor, target)
 #target = transformTargetInBinary(target)
