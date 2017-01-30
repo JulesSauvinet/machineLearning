@@ -183,23 +183,18 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
                 run_classifiers(clfs,pcaCredit)
 
             if (withPoly):
-                #print "Avec combinaisons polynomiales des données faites au préalable"
                 poly = PolynomialFeatures(2)
                 polyPred = poly.fit_transform(pcaPred2)
                 polyPred = np.concatenate((polyPred, pcaPred2), axis=1)
-
                 polyCredit = {'data': polyPred, 'target': target}
+                print "Avec combinaisons polynomiales des données faites au préalable"
                 run_classifiers(clfs,polyCredit)
-
 
 #predictor, target = deleteRowsWithNan(predictor, target)
 #target = transformTargetInBinary(target)
 #credit = {'data': predictor, 'target': target}
 #test_classifiers(credit, False,False,False,False,True)
 
-
-#predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-#predictor = predictor[:, [1, 2, 7, 10, 13, 14]]
 
 pred_cat =	predictor[:,[0,3,4,5,6,8,9,11,12]]
 
@@ -214,7 +209,6 @@ for	col_id	in range(len(pred_cat[0])):
         val_idx[val_idx==valNan]=np.nan
 
     pred_cat[:,col_id]	= val_idx
-
 
 pred_not_cat = predictor[:, [1, 2, 7, 10, 13, 14]]
 for j in range(len(pred_not_cat)):
@@ -257,15 +251,9 @@ for i in range(46):
         break
 
 predictNormPCA = pca.transform(predictNorm)
-
 predictNormWithPCA = np.concatenate((predictNorm, predictNormPCA), axis=1)
 
-#print predictNormWithPCA
 #print np.shape(predictNormWithPCA)
-
-#OPTIONNEL ATTENTION LE NOMBRE DE VARIABLE EXPLOSE
-
-print np.shape(predictNormWithPCA)
 
 target = transformTargetInBinary(target)
 
