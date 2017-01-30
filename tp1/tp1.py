@@ -60,11 +60,11 @@ def plotTargetDist(target):
     plt.title("+ and -")
     plt.show()
 
-#print np.shape(predictor)
+#print "On a " + np.shape(predictor) + " lignes dans les donnees"
 #print np.shape(target)
 #print target
 
-#Test du Naive Bayes
+#Fonction pour le test du Naive Bayes
 def NaiveBayesSimple(credit) :
     gnb = GaussianNB()
     y_pred = gnb.fit(credit['data'], credit['target']).predict(credit['data'])
@@ -100,7 +100,7 @@ def run_classifiers(clfs, credit):
 
         timeStart = time.time()
 
-        print "*",'-'*75,"*"
+        print "*",'-'*100,"*"
         print "Classifieur ", clf, " :"
         #Accuracy
         cv_acc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='accuracy', cv=kf)  # pour	le	calcul	de	l’accuracy
@@ -131,7 +131,7 @@ def run_classifiers(clfs, credit):
         print "Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  : ", timeExec," secondes"
         print ""
 
-        print "*",'-'*75,"*"
+        print "*",'-'*100,"*"
         print ""
 
 
