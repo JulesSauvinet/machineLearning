@@ -156,11 +156,11 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
         scalePred2 = minMaxScaler.fit(predictor).transform(predictor)
         scaleCredit2 = {'data': scalePred2, 'target': target}
 
-		#---------------------------------------------------- AVEC NORMALISATION (MIN,MAX) -------------------------------------------------
+	#---------------------------------------------------- AVEC NORMALISATION (MIN,MAX) -------------------------------------------------
         if (withMinMaxNorm):
             print "Avec centrage selon min et max des données au préalable"
             run_classifiers(clfs,scaleCredit2)
-		# ----------------------------------------------------------------------------------------------------------------------------------       
+	# ----------------------------------------------------------------------------------------------------------------------------------       
 
 		
         if (withPCA or withPoly  == True):
@@ -175,13 +175,13 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
             pcaPred2 = np.concatenate((scalePred2, pcaPred), axis=1)
             pcaCredit = {'data': pcaPred2, 'target': target}
 
-		#-------------------------------------------------------- AVEC L'ACP CONCATENEE ----------------------------------------------------
+	    #-------------------------------------------------------- AVEC L'ACP CONCATENEE ----------------------------------------------------
             if (withPCA):
                 print "Avec pca au préalable"
                 run_classifiers(clfs,pcaCredit)
-		# ----------------------------------------------------------------------------------------------------------------------------------       
+            # ----------------------------------------------------------------------------------------------------------------------------------       
 
-		# --------------------------------------------------- AVEC COMBINAISONS POLYNOMIALES -----------------------------------------------
+            # --------------------------------------------------- AVEC COMBINAISONS POLYNOMIALES -----------------------------------------------
             if (withPoly):
                 poly = PolynomialFeatures(2)
                 polyPred = poly.fit_transform(pcaPred2)
@@ -189,7 +189,7 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
                 polyCredit = {'data': polyPred, 'target': target}
                 print "Avec combinaisons polynomiales des données faites au préalable"
                 run_classifiers(clfs,polyCredit)
-		# ----------------------------------------------------------------------------------------------------------------------------------       
+	    # ----------------------------------------------------------------------------------------------------------------------------------       
 
 
 #predictor, target = deleteRowsWithNan(predictor, target)
