@@ -1,4 +1,5 @@
 # coding=utf-8
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -14,7 +15,9 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest,SelectPercentile,chi2,f_classif,mutual_info_classif
+from sklearn.metrics import r2_score
 from sklearn.model_selection import KFold,cross_val_score
+from sklearn.model_selection import ShuffleSplit
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
@@ -30,16 +33,13 @@ warnings.filterwarnings('ignore')
 
 df=pd.read_csv('credit.data', sep='\t')
 
-train, test = train_test_split(df, test_size = 0.2)
 
-# on scinde les donnees en deux sets (apprentissage et test pour la validation)
+
+# on scinde les donnees
 #les predicteurs
-predictorTrain = train.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-predictorTest = test.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-
-#la variables a predire
-targetTrain = train.values[:,15]
-targetTest = test.values[:,15]
+predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
+#la variable a predire
+target = df.values[:,15]
 
 #print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
 #print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
@@ -303,41 +303,112 @@ def preProcessDatas(predictor,target):
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #SELECTION DE VARIABLE
+predictor, target = preProcessDatas(predictor, target)
 
-#Pour l'apprentissage
-predictorTrain, targetTrain = preProcessDatas(predictorTrain, targetTrain)
-#Pour les tests de validation
-predictorTest, targetTest = preProcessDatas(predictorTest, targetTest)
+#Pour l'apprentissage et pour les tests de validation
+predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.33, random_state =42)
+
+def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0001) :
+
+    varSelected = []
+    if (method == 'selectKBest'):
+        print np.shape(predictorTrain)
+        selector = SelectKBest(mutual_info_classif, k = 'all').fit(predictorTrain,targetTrain)
+        #selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
+
+        #selector = SelectPercentile(mutual_info_classif, percentile=100).fit(predictorTrain,targetTrain)
+
+        scores = selector.scores_
+        plt.hist(scores)#, bins = range(1,len(scores)))
+        plt.title("Score de la selection de variables avec SelectKBest")
+        plt.ylabel('Nombre de variables')
+        plt.xlabel('Score')
+        plt.show()
+
+        #D'apres l'hist, on en enleve 52? why not TODO EN DYNAMIQUE ET AUTREMENT?
+        selector = SelectKBest(mutual_info_classif, k = len(predictorTrain[0])-47).fit(predictorTrain,targetTrain)
+        predictorTrain = selector.transform(predictorTrain)
+
+        print np.shape(predictorTrain)
+
+    elif (method == 'rf'):
+        # Random forest
+        clf = RandomForestClassifier(n_estimators=20)  # Random Forest
+        clf.fit(predictorTrain, targetTrain)
+
+        indexes = range(len(predictorTrain[0]))
+        #print "Features sorted by their score:"
+        #print sorted(zip(map(lambda x: round(x, 4), clf.feature_importances_), indexes),reverse=True)
+
+        plt.hist(clf.feature_importances_, bins = 30)  # , bins = range(1,len(scores)))
+        plt.title("Score de la selection de variables avec Random Forest")
+        plt.ylabel('Nombre de variables')
+        plt.xlabel('Score')
+        plt.show()
+
+        scores = defaultdict(list)
+        # crossvalidate the scores on a number of different random splits of the data
+        for train_idx, test_idx in ShuffleSplit(n_splits=10, random_state=0, test_size=.3).split(predictorTrain):
+            X_train, X_test = predictorTrain[train_idx], predictorTrain[test_idx]
+            Y_train, Y_test = targetTrain[train_idx], targetTrain[test_idx]
+
+            r = clf.fit(X_train, Y_train)
+            acc = r2_score(Y_test, clf.predict(X_test))
+
+            for i in range(predictorTrain.shape[1]):
+                X_t = X_test.copy()
+                np.random.shuffle(X_t[:, i])
+                shuff_acc = r2_score(Y_test, clf.predict(X_t))
+
+                scores[indexes[i]].append((acc - shuff_acc) / acc)
+
+            sortedScore = sorted([(round(np.mean(score), 4), feat) for
+                          feat, score in scores.items()], reverse=True)
+
+            for score, index in sortedScore:
+                if score > threshold:
+                    varSelected.append(index)
+
+        #print np.unique(varSelected)
+
+        #predictorTrain = predictorTrain[:, np.unique(varSelected)]
 
 
-#selector = SelectKBest(mutual_info_classif, k = 80).fit(predictNormWithPCA,target)
-#selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
+    #TODO renvoyer k? pour apres lancer sur le jeu de test
+    return np.unique(varSelected)
 
-selector = SelectPercentile(mutual_info_classif, percentile=100).fit(predictorTrain,targetTrain)
 
-scores = selector.scores_
-plt.hist(scores)
-plt.title("Score de la selection de variables")
-plt.show()
+def testRf(predictor,target):
+    creditNormalized = {'data': predictor, 'target': target}
+    clfsRF = {
+        'RF': RandomForestClassifier(n_estimators=20),  # Random Forest
+    }
+    run_classifiers(clfsRF, creditNormalized)
 
-pvalues = selector.pvalues_
-#plt.hist(pvalues)
-#plt.title("Pvalues de la selection de variables")
-#plt.show()
 
-predictorTrain = selector.transform(predictorTrain)
-print np.shape(predictorTrain)
+#predictorTrain, targetTrain = variableSelector(predictorTrain,targetTrain, 'selectKBest')
+
+#cf http://blog.datadive.net/selecting-good-features-part-iii-random-forests/
+#print np.shape(predictorTrain)
+
+print "Avant selection de variables"
+run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
+
+varSelected = variableSelector(predictorTrain,targetTrain, 'rf')
+
+print "Après selection de variables"
+predictorTest = predictorTest[:,varSelected]
+run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
+
+
+
+#testRf(predictorTrain,targetTrain)
 
 #print scores
 #print pvalues
 #print np.shape(predictNormWithPCASel)
 
 
-#Random forest
-creditNormalized  = {'data': predictorTrain, 'target': targetTrain}
-clfsRF = {
-    'RF':    RandomForestClassifier(n_estimators=20),  # Random Forest
-}
-#run_classifiers(clfsRF,creditNormalized)
+
 
 
