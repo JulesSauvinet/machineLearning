@@ -313,23 +313,31 @@ predictorTest, targetTest = preProcessDatas(predictorTest, targetTest)
 #selector = SelectKBest(mutual_info_classif, k = 80).fit(predictNormWithPCA,target)
 #selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
 
-selector = SelectPercentile(mutual_info_classif, percentile=70).fit(predictorTrain,targetTrain)
-predictNormWithPCASel = selector.transform(predictorTrain)
-
-print np.shape(predictNormWithPCASel)
+selector = SelectPercentile(mutual_info_classif, percentile=100).fit(predictorTrain,targetTrain)
 
 scores = selector.scores_
+plt.hist(scores)
+plt.title("Score de la selection de variables")
+plt.show()
+
 pvalues = selector.pvalues_
+#plt.hist(pvalues)
+#plt.title("Pvalues de la selection de variables")
+#plt.show()
+
+predictorTrain = selector.transform(predictorTrain)
+print np.shape(predictorTrain)
+
 #print scores
 #print pvalues
 #print np.shape(predictNormWithPCASel)
 
 
 #Random forest
-creditNormalized  = {'data': predictNormWithPCASel, 'target': targetTrain}
+creditNormalized  = {'data': predictorTrain, 'target': targetTrain}
 clfsRF = {
     'RF':    RandomForestClassifier(n_estimators=20),  # Random Forest
 }
-run_classifiers(clfsRF,creditNormalized)
+#run_classifiers(clfsRF,creditNormalized)
 
 
