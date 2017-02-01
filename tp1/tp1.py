@@ -4,31 +4,26 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import scipy
 import warnings
 import time
 import csv
 
 from sklearn import datasets, preprocessing
 from sklearn import tree
-from sklearn.decomposition import PCA
-from sklearn.decomposition import TruncatedSVD
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import IsolationForest
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.decomposition import PCA,TruncatedSVD
+from sklearn.ensemble import AdaBoostClassifier,GradientBoostingClassifier,IsolationForest,RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.feature_selection import SelectKBest,SelectPercentile,chi2,f_classif,mutual_info_classif
 from sklearn.metrics import r2_score
-from sklearn.model_selection import KFold,cross_val_score
-from sklearn.model_selection import ShuffleSplit
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold,cross_val_score,ShuffleSplit,StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
-import scipy
+
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #Extraction des donnees et creations des sets de test et d'apprentissage
@@ -37,7 +32,7 @@ from lof import LOF, outliers
 np.set_printoptions(threshold=np.nan)
 warnings.filterwarnings('ignore')
 
-df=pd.read_csv('credit.data', sep='\t')
+df=pd.read_csv('data\credit.data', sep='\t')
 
 # on scinde les donnees
 #les predicteurs
@@ -475,7 +470,7 @@ def textMining(df2):
 # -------------------------------------------------------------------------------------------------------------------------#
 #TEST
 def testTextMining():
-    df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+    df2 = pd.read_csv('data\SMSSpamCollection.data', sep='\t')
     X, Y = textMining(df2)
     run_classifiers(clfs, {'data': X.astype(np.float), 'target': Y.astype(np.float)})
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -500,7 +495,7 @@ def showRawDatas(df):
     plt.ylabel('y')
     plt.show()
 
-#df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
+#df3=pd.read_csv('data\mouse-synthetic-data.txt', sep=' ')
 #showRawDatas(df3)
 # -------------------------------------------------------------------------------------------------------------------------#
 
@@ -603,7 +598,7 @@ def detectAnomaly(X,method = 'isolationforest', plot=True):
 
 # Test
 # 2. Sur le	jeu	de données des SMS
-df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+df2 = pd.read_csv('data\SMSSpamCollection.data', sep='\t')
 
 #Preparation des donnees
 #representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
