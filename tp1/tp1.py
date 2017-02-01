@@ -11,13 +11,17 @@ import csv
 from sklearn import datasets, preprocessing
 from sklearn import tree
 from sklearn.decomposition import PCA
+from sklearn.decomposition import TruncatedSVD
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import IsolationForest
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.feature_selection import SelectKBest,SelectPercentile,chi2,f_classif,mutual_info_classif
 from sklearn.metrics import r2_score
 from sklearn.model_selection import KFold,cross_val_score
 from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
@@ -25,15 +29,14 @@ from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneH
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 #Extraction des donnees et creations des sets de test et d'apprentissage
+from lof import LOF, outliers
+
 np.set_printoptions(threshold=np.nan)
 warnings.filterwarnings('ignore')
 
 df=pd.read_csv('credit.data', sep='\t')
-
-
 
 # on scinde les donnees
 #les predicteurs
@@ -44,7 +47,6 @@ target = df.values[:,15]
 #print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
 #print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -80,14 +82,12 @@ def transformTargetInBinary(target):
 # -------------------------------------------------------------------------------------------------------------------------#
 
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 def plotTargetDist(target):
     plt.hist(target, bins=2)
     plt.title("+ and -")
     plt.show()
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -97,7 +97,7 @@ clfs =	{
     'NBS' : GaussianNB(), #Naive Bayes Classifier
     'RF':	RandomForestClassifier(n_estimators=20), #Random Forest
     'KNN':	KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'), #K plus proches voisins
-    'CART':  tree.DecisionTreeClassifier(min_samples_split=300, random_state=99,criterion='gini'), #Arbres de décision CART
+    'CART':  tree.DecisionTreeClassifier(min_samples_split=50, random_state=99,criterion='gini'), #Arbres de décision CART
     'ADAB' : AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'), #Adaboost avec arbre de décision
                          algorithm="SAMME",
                          n_estimators=50),
@@ -107,7 +107,6 @@ clfs =	{
                                         random_state=1, max_features=None, verbose=0) #Gradient boosting classifier
 }
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -121,40 +120,34 @@ def run_classifiers(clfs, credit):
         timeStart = time.time()
 
         print "*",'-'*100,"*"
-        print "Classifieur ", clf, " :"
+
+        print clf
         #Accuracy
         cv_acc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='accuracy', cv=kf)  # pour	le	calcul	de	l’accuracy
         avg_acc = cv_acc.mean()
         std_acc = cv_acc.std()
-        print "Moyenne de l'accuracy du classifieur : ", avg_acc
-        print "Ecart-type de l'accuracy du classifieur : ", std_acc
+        print "Accuracy (mean) de ", clf, "    : " ,avg_acc, "( std de ", std_acc, ")"
 
         #ROC
-        cv_roc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='roc_auc', cv=kf)  # pour	le	calcul	de	l'AUC
+        cv_roc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='roc_auc')#, cv=kf2)  # pour	le	calcul	de	l'AUC
         avg_roc = cv_roc.mean()
         std_roc = cv_roc.std()
-        print "Moyenne de l'AUC du classifieur : ", avg_roc
-        print "Ecart-type de l'AUC du classifieur : ", std_roc
+        print "AUC (mean) de ", clf, "         : " ,avg_roc, "( std de ", std_roc, ")"
 
         #Précision +
-        cv_prec = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='precision',
-                                 cv=kf)  # pour	le	calcul	de	la précision des +
+        cv_prec = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='precision', cv=kf)  # pour	le	calcul	de	la précision des +
         avg_prec = cv_prec.mean()
         std_prec = cv_prec.std()
-        print "Moyenne de la précision + du classifieur : ", avg_prec
-        print "Ecart-type de la précision + du classifieur : ", std_prec
+        print "Precision + (mean) de ", clf, " : " , avg_prec, "( std de ", std_prec, ")"
 
-        print ""
         timeEnd = time.time()
         timeExec = timeEnd - timeStart
 
-        print "Temps d'exécution de l'algorithme (*3 pour obtenir les 3 scoring)  : ", timeExec," secondes"
-        print ""
+        print "(in ", timeExec," secondes)"
 
         print "*",'-'*100,"*"
         print ""
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -212,7 +205,6 @@ def test_classifiers(credit, withoutNorm = False, withStandardNorm = False, with
 # -------------------------------------------------------------------------------------------------------------------------#
 
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 #Lancement du test des classifieurs
 def launchTestClassifiers(predictor, target) :
@@ -221,7 +213,6 @@ def launchTestClassifiers(predictor, target) :
     credit = {'data': predictor, 'target': target}
     test_classifiers(credit, False,False,False,False,True)
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -302,37 +293,43 @@ def preProcessDatas(predictor,target):
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
-#SELECTION DE VARIABLE
+
+#Pre-traitement des donnees pour augmenter le dataset
 predictor, target = preProcessDatas(predictor, target)
 
 #Pour l'apprentissage et pour les tests de validation
-predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.33, random_state =42)
+predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.30, random_state =42)
 
-def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0001) :
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#SELECTION DE VARIABLE selon selectKBest ou Random Forest
+#TODO FIND the skitest (le seuil ou il y a un creux)
+def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0000001) :
 
     varSelected = []
+
+    #selectKBest
     if (method == 'selectKBest'):
         print np.shape(predictorTrain)
         selector = SelectKBest(mutual_info_classif, k = 'all').fit(predictorTrain,targetTrain)
         #selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
-
         #selector = SelectPercentile(mutual_info_classif, percentile=100).fit(predictorTrain,targetTrain)
 
         scores = selector.scores_
-        plt.hist(scores)#, bins = range(1,len(scores)))
+
+        print scores
+        for i in range(len(scores)):
+            if (scores[i] > threshold*1000):
+                varSelected.append(i)
+        print scores[0]
+        plt.hist(scores, bins = 30)#, bins = range(1,len(scores)))
         plt.title("Score de la selection de variables avec SelectKBest")
         plt.ylabel('Nombre de variables')
         plt.xlabel('Score')
         plt.show()
 
-        #D'apres l'hist, on en enleve 52? why not TODO EN DYNAMIQUE ET AUTREMENT?
-        selector = SelectKBest(mutual_info_classif, k = len(predictorTrain[0])-47).fit(predictorTrain,targetTrain)
-        predictorTrain = selector.transform(predictorTrain)
-
-        print np.shape(predictorTrain)
-
+    # Random forest
     elif (method == 'rf'):
-        # Random forest
         clf = RandomForestClassifier(n_estimators=20)  # Random Forest
         clf.fit(predictorTrain, targetTrain)
 
@@ -362,53 +359,236 @@ def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0001) :
 
                 scores[indexes[i]].append((acc - shuff_acc) / acc)
 
-            sortedScore = sorted([(round(np.mean(score), 4), feat) for
-                          feat, score in scores.items()], reverse=True)
 
-            for score, index in sortedScore:
-                if score > threshold:
-                    varSelected.append(index)
+        for feat, score in scores.items():
+            scorebis = np.mean(score)
+            if scorebis > threshold:
+                varSelected.append(feat)
 
-        #print np.unique(varSelected)
+        varSelected = np.unique(varSelected)
 
-        #predictorTrain = predictorTrain[:, np.unique(varSelected)]
-
-
-    #TODO renvoyer k? pour apres lancer sur le jeu de test
-    return np.unique(varSelected)
+    return varSelected
+# -------------------------------------------------------------------------------------------------------------------------#
 
 
+# -------------------------------------------------------------------------------------------------------------------------#
 def testRf(predictor,target):
     creditNormalized = {'data': predictor, 'target': target}
     clfsRF = {
         'RF': RandomForestClassifier(n_estimators=20),  # Random Forest
     }
     run_classifiers(clfsRF, creditNormalized)
+# -------------------------------------------------------------------------------------------------------------------------#
 
 
+# -------------------------------------------------------------------------------------------------------------------------#
 #predictorTrain, targetTrain = variableSelector(predictorTrain,targetTrain, 'selectKBest')
+# cf http://blog.datadive.net/selecting-good-features-part-iii-random-forests/
+def processAndSelVarAndRunClassif (predictorTrain, targetTrain, predictorTest, targetTest):
 
-#cf http://blog.datadive.net/selecting-good-features-part-iii-random-forests/
-#print np.shape(predictorTrain)
+    print "Avant selection de variables"
+    print np.shape(predictorTest)
+    run_classifiers(clfs, {'data': predictorTest, 'target': targetTest})
 
-print "Avant selection de variables"
-run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
+    varSelected = variableSelector(predictorTrain, targetTrain, 'rf')
+    predictorTest = predictorTest[:, varSelected]
 
-varSelected = variableSelector(predictorTrain,targetTrain, 'rf')
+    print "Après selection de variables"
+    print np.shape(predictorTrain)
 
-print "Après selection de variables"
-predictorTest = predictorTest[:,varSelected]
-run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
-
-
+    run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
+# -------------------------------------------------------------------------------------------------------------------------#
 
 #testRf(predictorTrain,targetTrain)
+#processAndSelVarAndRunClassif(predictorTrain, targetTrain, predictorTest, targetTest)
+#TODO plus de classsifieurs
 
-#print scores
-#print pvalues
-#print np.shape(predictNormWithPCASel)
+# -------------------------------------------------------------------------------------------------------------------------#
 
 
+# *************************************************************************************************************************#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#II.Apprentissage supervise des donnees textuelles
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+def countVectorize(corpus, targ):
+    vect = CountVectorizer(stop_words='english')
+
+    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=25, max_features=250)
+
+    vect.fit(corpus)
+    vectorizer.fit(corpus) #cooccurences
+
+    X1 = vect.transform(corpus)
+    X = vectorizer.transform(corpus)
+
+    #print np.shape(X1)
+    #print np.shape(X)
+
+    analyze = vectorizer.build_analyzer()
+
+    targ[targ == 'ham'] = 1
+    targ[targ == 'spam'] = 0
+
+    #print np.shape(X.toarray())
+
+    return X.toarray(), targ
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+def tfIdfize(X):
+    transformer = TfidfTransformer(smooth_idf=False, norm='l2', use_idf=True, sublinear_tf=False)
+    tfidf = transformer.fit_transform(X)
+
+    return tfidf.toarray()
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+def truncateSVD(X):
+    svd = TruncatedSVD(n_components=25, algorithm="randomized", n_iter=7,
+                 random_state=42, tol=0.)
+    svdX = svd.fit_transform(X)
+
+    return svdX
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#TEST
+def textMining():
+    df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+    corpus = df2.values[:, 1] # le predicteur
+    targ = df2.values[:, 0]   # la variable a predire  # TODO train et test
+
+    X,Y = countVectorize(corpus,targ) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
+    X = tfIdfize(X)                   #calcul d'importance des termes a l'aide de cooccurence
+    X = truncateSVD(X)                #reduction de sparse matrix avec SVD (single value detection)
+    run_classifiers(clfs, {'data' : X.astype(np.float), 'target' : Y.astype(np.float)})
+
+#textMining()
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# *************************************************************************************************************************#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#III.Apprentissage non supervise : Detection d'anomalies
+
+df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+def showRawDatas(df):
+    x = df.values[:, 0]
+    y = df.values[:, 1]
+
+
+    plt.plot(x,y, 'ro')
+    plt.title("Detection d'anomalie")
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+
+#showRawDatas(df3)
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
+# Detection d'anomalie selon deux technique : isolationforest ou LOF
+def detectAnomaly(df,method = 'isolationforest'):
+    X = df.values[:, [0,1]]
+    # Premiere technique de detection d'anomalie
+    # Isolation forest
+    if (method == 'isolationforest'):
+        X_train, X_test = train_test_split(X, test_size = 0.30, random_state =42)
+
+        # creation du modele
+        clf = IsolationForest(n_estimators=100,max_samples='auto', random_state=0)
+
+        #construction du modele a partir des donnes d'apprentissage
+        clf.fit(X_train)
+        y_pred_train = clf.predict(X_train)
+        X_out_idx = np.where(y_pred_train!=1)
+        X_outliers_train = X_train[X_out_idx]
+
+        #mesure de verification
+        #y_pred_outliers = clf.predict(X_outliers_train)
+        #print y_pred_outliers
+
+        #execution du modele construit sur le jeu de validation
+        y_pred_test = clf.predict(X_test)
+        X_out_idx = np.where(y_pred_test != 1)
+        X_outliers = X_train[X_out_idx]
+
+        # affichage des resultats de detection sur le set d'apprentissage et de validation
+        xx, yy = np.meshgrid(np.linspace(0, 1, 50), np.linspace(0, 1.5, 50))
+        Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
+
+        plt.title("IsolationForest")
+        plt.contourf(xx, yy, Z, cmap=plt.cm.Blues_r)
+
+        b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c='white')
+        b2 = plt.scatter(X_test[:, 0], X_test[:, 1], c='green')
+        c1 = plt.scatter(X_outliers_train[:, 0], X_outliers_train[:, 1], c='blue')
+        c2 = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
+
+        plt.axis('tight')
+        plt.xlim((0, 1))
+        plt.ylim((0, 1.5))
+        plt.legend([b1, b2, c1,c2],
+                   ["obs d'apprentissage","anomalies detectees sur les obs d'apprentissage"
+                    "nouvelles obs", "anomalies detectees sur les nouvelles obs"],
+                   loc="upper left")
+        plt.show()
+
+    # Deuxieme technique de detection d'anomalie
+    # Local Outlier Factor
+    # https://github.com/damjankuznar/pylof/blob/master/lof.py -> marche pas? trop lent ou trop de outlier?
+    # http://scikit-learn.org/dev/auto_examples/neighbors/plot_lof.html
+    if (method == 'lof'):
+        instances = []
+        for x in X:
+            instances.append((x[0], x[1]))
+
+        result = outliers(1, instances)
+
+        X_outliers = []
+        for outlier in result:
+            #print outlier["lof"], outlier["instance"]
+            x,y = outlier["instance"]
+            coord = []
+            coord.append(x)
+            coord.append(y)
+            X_outliers.append(coord)
+
+        X_outliers = np.array(X_outliers)
+
+        plt.title("Local Outlier Factor (LOF)")
+
+        a = plt.scatter(X[:, 0], X[:, 1], c='green')
+        b = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
+
+        plt.axis('tight')
+        plt.xlim((0, 1))
+        plt.ylim((0, 1.5))
+        plt.legend([a, b],["observations normales","observations anormales"],loc="upper left")
+
+        plt.show()
+
+# Test
+#detectAnomaly(df3,'isolationforest')
+#detectAnomaly(df3,'lof')
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
+# -------------------------------------------------------------------------------------------------------------------------#
 
 
 
