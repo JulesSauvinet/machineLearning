@@ -7,9 +7,9 @@ from model.Classifiers import run_classifiers, clfs
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
-def countVectorize(corpus, targ):
+def countVectorize(corpus, targ, minOccurence, maxfeatures = 150):
     vect = CountVectorizer(stop_words='english')
-    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=15, max_features=150)
+    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=minOccurence, max_features=maxfeatures)
 
     vect.fit(corpus)
     vectorizer.fit(corpus) #cooccurences
@@ -34,8 +34,8 @@ def tfIdfize(X):
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
-def truncateSVD(X):
-    svd = TruncatedSVD(n_components=25, algorithm="randomized", n_iter=6,random_state=42, tol=0.)
+def truncateSVD(X, svdSize = 25):
+    svd = TruncatedSVD(n_components=svdSize, algorithm="randomized", n_iter=6,random_state=42, tol=0.)
     svdX = svd.fit_transform(X)
 
     return svdX
@@ -43,13 +43,13 @@ def truncateSVD(X):
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #Preparation du set de donnees textuelle pour faire de la classification
-def textMining(df2):
+def textMining(df2, minOccurence = 15, maxfeatures=100, svdSize = 25):
     corpus = df2.values[:, 1] # le predicteur
     targ = df2.values[:, 0]   # la variable a predire  # TODO train et test
 
-    X,Y = countVectorize(corpus,targ) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
+    X,Y = countVectorize(corpus,targ, minOccurence, maxfeatures) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
     X = tfIdfize(X)                   #calcul d'importance des termes a l'aide de cooccurence
-    X = truncateSVD(X)                #reduction de sparse matrix avec SVD (single value detection)
+    X = truncateSVD(X, svdSize)                #reduction de sparse matrix avec SVD (single value detection)
     return X,Y
 # -------------------------------------------------------------------------------------------------------------------------#
 

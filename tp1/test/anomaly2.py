@@ -121,23 +121,27 @@ def detectAnomaly(X,method = 'isolationforest', plot=True):
 #detectAnomaly(X,'isolationforest')
 #detectAnomaly(X,'lof')
 
-
 # Test
 # 2. Sur le	jeu	de données des SMS
 df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
 
 #Preparation des donnees
 #representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
-X, Y = textMining(df2, 10, 500, 50)
+#X, Y = textMining(df2, 10, 500,50)
+
+X = df2.values[:, 1]
+Y = df2.values[:, 0]
+
 #print np.shape(X)
 
 #concatenation de la representation SVD des textes SMS et la categorie Spam/Ham
 Y = np.reshape(Y, (len(Y), 1))
-Z = np.concatenate((X, Y), axis=1)
+X = np.reshape(X, (len(X), 1))
+Z = np.concatenate((Y, X), axis=1)
 
 #extraction des SMS labelle Spam ou Ham
-Spam = Z[Z[:, Z.shape[1]-1] == 0]
-Ham =  Z[Z[:, Z.shape[1]-1] == 1]
+Spam = Z[Z[:, 0] == 'spam']
+Ham =  Z[Z[:, 0] == 'ham']
 
 #recuperer la moitie des donnees Ham aleatoirement
 halfHam = Ham[np.random.randint(0,Ham.shape[0],Ham.shape[0]/2)]
@@ -147,8 +151,17 @@ halfHam = Ham[np.random.randint(0,Ham.shape[0],Ham.shape[0]/2)]
 sampleSpam = Spam[np.random.randint(0,Spam.shape[0],20)]
 #print np.shape(sampleSpam)
 
-#le jeu de donnee sur lequel on va faire de la detection d'anomalie
 datas = np.concatenate((halfHam, sampleSpam), axis=0)
+np.random.shuffle(datas)
+df = pd.DataFrame(datas)
+
+X, Y = textMining(df, 10, 500,50)
+Y = np.reshape(Y, (len(Y), 1))
+
+#le jeu de donnee sur lequel on va faire de la detection d'anomalie
+datas = np.concatenate((X, Y), axis=1)
+
+print np.shape(datas)
 
 #les index des outliers
 outs = np.argwhere(datas[:, datas.shape[1]-1] == 0)
@@ -158,21 +171,41 @@ datas = scipy.delete(datas, datas.shape[1]-1, 1)
 
 print np.shape(datas)
 #on fit le modele
-clf = IsolationForest(n_estimators=100, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.007)
+clf = IsolationForest(n_estimators=100, max_samples='auto', random_state=0, bootstrap=True, n_jobs=1, contamination = 0.007)
 clf.fit(datas)
 y_pred = clf.predict(datas)
+scores = clf.decision_function(datas)
 
+#outByScore = []
+#for i in range(len(scores)):
+#    if scores[i] < 0.02:
+#        outByScore.append(i)
+
+#print y_pred
+#print len(y_pred)
 #les outliers predits
-X_out_idx = np.where(y_pred != 1)
+X_out_idx = np.where(y_pred == -1)
+
+
+#print np.shape(idx2)
+#print np.shape(X_out_idx)
+
+
+#print X_out_idx
 
 #X_out_idx.append(2412)#, 2413, 2414, 2415])
 outs = np.transpose(outs)
 
 outs = outs[0]
+#X_out_idx = outByScore#X_out_idx[0]
 X_out_idx = X_out_idx[0]
 
 #print outs
 #print X_out_idx
+
+print X_out_idx
+print outs
+print np.intersect1d(outs, X_out_idx)
 
 FP = len(np.intersect1d(outs, X_out_idx))
 FN = len(X_out_idx)-FP
@@ -191,5 +224,5 @@ print " ______________________________", "\n"  \
       "| Ham ", " "*4, VN, " "*7, VP, " "*2, "|","\n"  \
       "|_____________________________ |","\n"  \
 
-# -------------------------------------------------------------------------------------------------------------------------#
 
+# -------------------------------------------------------------------------------------------------------------------------#
