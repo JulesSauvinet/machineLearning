@@ -27,6 +27,7 @@ from sklearn.model_selection import train_test_split
 # -------------------------------------------------------------------------------------------------------------------------#
 # Fonction qui run les 7 classifieurs et qui affiche des mesures de qualité
 # (Précision, Accuracy, AUC et temps d'exécution) pour comparer les différents classifieurs
+
 def run_classifiers(clfs, credit):
     kf = KFold(n_splits=10, shuffle=True, random_state=0)
 
@@ -38,7 +39,7 @@ def run_classifiers(clfs, credit):
 
         print clf
         #Accuracy
-        cv_acc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='accuracy', cv=kf)  # pour	le	calcul	de	l’accuracy
+        cv_acc = cross_val_score(clfs[clf], credit['data'], credit['target'], scoring='accuracy', cv=kf)  # pour    le	calcul	de	l’accuracy
         avg_acc = cv_acc.mean()
         std_acc = cv_acc.std()
         print "Accuracy (mean) de ", clf, "    : " ,avg_acc, "( std de ", std_acc, ")"

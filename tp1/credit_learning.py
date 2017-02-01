@@ -30,38 +30,29 @@ from sklearn.model_selection import train_test_split
 #Definition des classifieurs dans un dictionnaire
 clf_init = None
 clfs =	{
-    'NBS' : GaussianNB(), #Naive Bayes Classifier
-    'RF':	RandomForestClassifier(n_estimators=20), #Random Forest
-    'KNN':	KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'), #K plus proches voisins
-    'CART':  tree.DecisionTreeClassifier(min_samples_split=50, random_state=99,criterion='gini'), #Arbres de décision CART
-    'ADAB' : AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'), #Adaboost avec arbre de décision
-                         algorithm="SAMME",
-                         n_estimators=50),
-    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'), # MLP perceptron multi-couches,
-    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=10, subsample=0.3,
-                                        min_samples_split=2, min_samples_leaf=1, max_depth=1, init=clf_init,
-                                        random_state=1, max_features=None, verbose=0) #Gradient boosting classifier
+    #Naive Bayes Classifier
+    'NBS' : GaussianNB(),
+
+    #Random Forest
+    'RF':   RandomForestClassifier(n_estimators=20),
+
+    #K plus proches voisins
+    'KNN':  KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'),
+
+    #Arbres de décision CART
+    'CART': tree.DecisionTreeClassifier(min_samples_split=50, random_state=99,criterion='gini'),
+
+    #Adaboost avec arbre de décision
+    'ADAB': AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'),algorithm="SAMME",n_estimators=50),
+
+    # MLP perceptron multi-couches,
+    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'),
+
+    #Gradient boosting classifier
+    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=10, subsample=0.3,min_samples_split=2,
+                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
 }
 # -------------------------------------------------------------------------------------------------------------------------#
-
-
-# -------------------------------------------------------------------------------------------------------------------------#
-#Extraction des donnees et creations des sets de test et d'apprentissage
-
-np.set_printoptions(threshold=np.nan)
-warnings.filterwarnings('ignore')
-
-df=pd.read_csv('data\credit.data', sep='\t')
-
-# on scinde les donnees :
-
-predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]   #les predicteurs
-target = df.values[:,15]                                        #la variable a predire
-
-print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
-print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
-# -------------------------------------------------------------------------------------------------------------------------#
-
 
 # -------------------------------------------------------------------------------------------------------------------------#
 def deleteRowsWithNan(predictor, target):
@@ -86,7 +77,6 @@ def deleteRowsWithNan(predictor, target):
     return predictor, target
 # -------------------------------------------------------------------------------------------------------------------------#
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 def transformTargetInBinary(target):
     # on binarise la donnee a predire
@@ -96,7 +86,6 @@ def transformTargetInBinary(target):
     
     return target
 # -------------------------------------------------------------------------------------------------------------------------#
-
 
 # -------------------------------------------------------------------------------------------------------------------------#
 def plotTargetDist(target):
@@ -245,16 +234,6 @@ def preProcessDatas(predictor,target):
     return predictNormWithPCA, target
 # -------------------------------------------------------------------------------------------------------------------------#
 
-
-# -------------------------------------------------------------------------------------------------------------------------#
-
-#Pre-traitement des donnees pour augmenter le dataset
-predictor, target = preProcessDatas(predictor, target)
-
-#Pour l'apprentissage et pour les tests de validation
-predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.30, random_state =42)
-
-
 # -------------------------------------------------------------------------------------------------------------------------#
 #SELECTION DE VARIABLE selon selectKBest ou Random Forest
 #TODO FIND the skitest (le seuil ou il y a un creux)
@@ -263,7 +242,7 @@ def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0000001)
     varSelected = []
 
     #selectKBest
-    if (method == 'selectKBest'):
+    if (method == 'kb'):
         print np.shape(predictorTrain)
         selector = SelectKBest(mutual_info_classif, k = 'all').fit(predictorTrain,targetTrain)
         #selector = SelectKBest(mutual_info_classif).fit(predictNormWithPCA,target)
@@ -313,7 +292,6 @@ def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0000001)
 
                 scores[indexes[i]].append((acc - shuff_acc) / acc)
 
-
         for feat, score in scores.items():
             scorebis = np.mean(score)
             if scorebis > threshold:
@@ -324,7 +302,6 @@ def variableSelector(predictorTrain, targetTrain, method, threshold = 0.0000001)
     return varSelected
 # -------------------------------------------------------------------------------------------------------------------------#
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 def testRf(predictor,target):
     creditNormalized = {'data': predictor, 'target': target}
@@ -334,24 +311,52 @@ def testRf(predictor,target):
     run_classifiers(clfsRF, creditNormalized)
 # -------------------------------------------------------------------------------------------------------------------------#
 
-
 # -------------------------------------------------------------------------------------------------------------------------#
 #predictorTrain, targetTrain = variableSelector(predictorTrain,targetTrain, 'selectKBest')
 # cf http://blog.datadive.net/selecting-good-features-part-iii-random-forests/
+
 def processAndSelVarAndRunClassif (predictorTrain, targetTrain, predictorTest, targetTest):
 
     print "Avant selection de variables"
-    print np.shape(predictorTest)
+    print "Tableau de taille " , np.shape(predictorTest), " apres la selection de variables"
     run_classifiers(clfs, {'data': predictorTest, 'target': targetTest})
 
     varSelected = variableSelector(predictorTrain, targetTrain, 'rf')
-    predictorTest = predictorTest[:, varSelected]
+    predictorTestRF = predictorTest[:, varSelected]
 
-    print "Après selection de variables"
+    print "Après selection de variables avec Random Forest"
     print np.shape(predictorTrain)
 
-    run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
+    run_classifiers(clfs,{'data': predictorTestRF, 'target': targetTest})
+
+    varSelected = variableSelector(predictorTrain, targetTrain, 'kb')
+    predictorTestKB = predictorTest[:, varSelected]
+
+    print "Après selection de variables avec K-Best"
+    print np.shape(predictorTrain)
+
+    run_classifiers(clfs,{'data': predictorTestKB, 'target': targetTest})
 # -------------------------------------------------------------------------------------------------------------------------#
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#Extraction des donnees et creations des sets de test et d'apprentissage
+np.set_printoptions(threshold=np.nan)
+warnings.filterwarnings('ignore')
+
+df=pd.read_csv('data\credit.data', sep='\t')
+
+# on scinde les donnees :
+predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]   #les predicteurs
+target = df.values[:,15]                                        #la variable a predire
+
+#print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
+#print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
+
+#Pre-traitement des donnees pour augmenter le dataset
+predictor, target = preProcessDatas(predictor, target)
+
+#Pour l'apprentissage et pour les tests de validation
+predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.30, random_state =42)
 
 testRf(predictorTrain,targetTrain)
 processAndSelVarAndRunClassif(predictorTrain, targetTrain, predictorTest, targetTest)
