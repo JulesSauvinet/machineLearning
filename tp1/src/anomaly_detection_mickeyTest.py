@@ -71,8 +71,10 @@ def detectAnomaly(X,method = 'isolationforest', plot=True):
             plt.xlim((0, 1))
             plt.ylim((0, 1.5))
             plt.legend([b1, b2, c1,c2],
-                       ["obs d'apprentissage","anomalies detectees sur les obs d'apprentissage",
-                        "nouvelles obs", "anomalies detectees sur les nouvelles obs"],
+                       ["obs d'apprentissage",
+                        "nouvelles obs",
+                        "anomalies detectees sur les obs d'apprentissage",
+                        "anomalies detectees sur les nouvelles obs"],
                        loc="upper left")
             plt.show()
         else :
@@ -120,7 +122,6 @@ def detectAnomaly(X,method = 'isolationforest', plot=True):
 
 df3=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ')
 X = df3.values[:, [0,1]]
-
 print 'Detection des anomalies par IsolationForest'
 detectAnomaly(X,'isolationforest')
 print 'Detection des anomalies par LOF'
