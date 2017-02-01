@@ -23,7 +23,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
-from run_classifieurs import run_classifiers
+from src.run_classifieurs import run_classifiers
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
