@@ -1,57 +1,22 @@
 # coding=utf-8
+import warnings
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
-import scipy
-import warnings
-import time
-import csv
-
-from sklearn import datasets, preprocessing
-from sklearn import tree
-from sklearn.decomposition import PCA,TruncatedSVD
-from sklearn.ensemble import AdaBoostClassifier,GradientBoostingClassifier,IsolationForest,RandomForestClassifier
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.feature_selection import SelectKBest,SelectPercentile,chi2,f_classif,mutual_info_classif
+import pandas as pd
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.metrics import r2_score
-from sklearn.model_selection import KFold,cross_val_score,ShuffleSplit,StratifiedKFold
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneHotEncoder
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import train_test_split
-from src.run_classifieurs import run_classifiers
+from sklearn.preprocessing import PolynomialFeatures, Imputer,OneHotEncoder
+
+from model.Classifiers import clfs, run_classifiers
 
 
-# -------------------------------------------------------------------------------------------------------------------------#
-#Definition des classifieurs dans un dictionnaire
-clf_init = None
-clfs =	{
-    #Naive Bayes Classifier
-    'NBS' : GaussianNB(),
-
-    #Random Forest
-    'RF':   RandomForestClassifier(n_estimators=20),
-
-    #K plus proches voisins
-    'KNN':  KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'),
-
-    #Arbres de décision CART
-    'CART': tree.DecisionTreeClassifier(min_samples_split=50, random_state=99,criterion='gini'),
-
-    #Adaboost avec arbre de décision
-    'ADAB': AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'),algorithm="SAMME",n_estimators=50),
-
-    # MLP perceptron multi-couches,
-    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'),
-
-    #Gradient boosting classifier
-    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=10, subsample=0.3,min_samples_split=2,
-                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
-}
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -312,58 +277,49 @@ def testRf(predictor,target):
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
-#predictorTrain, targetTrain = variableSelector(predictorTrain,targetTrain, 'selectKBest')
 # cf http://blog.datadive.net/selecting-good-features-part-iii-random-forests/
-
-def processAndSelVarAndRunClassif (predictorTrain, targetTrain, predictorTest, targetTest):
+def selVarAndRunClassif (predictorTrain, targetTrain, predictorTest, targetTest, method = 'rf'):
 
     print "Avant selection de variables"
-    print "Tableau de taille " , np.shape(predictorTest), " apres la selection de variables"
+    print "Tableau de taille " , np.shape(predictorTest), " avant la selection de variables"
     run_classifiers(clfs, {'data': predictorTest, 'target': targetTest})
 
-    varSelected = variableSelector(predictorTrain, targetTrain, 'rf')
-    predictorTestRF = predictorTest[:, varSelected]
+    if (method == 'rf'):
+        print "Selection de variables avec Random Forest"
+        varSelected = variableSelector(predictorTrain, targetTrain, 'rf')
+        predictorTest = predictorTest[:, varSelected]
 
-    print "Après selection de variables avec Random Forest"
-    print np.shape(predictorTrain)
+    elif (method =='kb'):
+        print "Selection de variables avec K-Best"
+        varSelected = variableSelector(predictorTrain, targetTrain, 'kb')
+        predictorTest = predictorTest[:, varSelected]
 
-    run_classifiers(clfs,{'data': predictorTestRF, 'target': targetTest})
 
-    varSelected = variableSelector(predictorTrain, targetTrain, 'kb')
-    predictorTestKB = predictorTest[:, varSelected]
-
-    print "Après selection de variables avec K-Best"
-    print np.shape(predictorTrain)
-
-    run_classifiers(clfs,{'data': predictorTestKB, 'target': targetTest})
-# -------------------------------------------------------------------------------------------------------------------------#
+    print "Tableau de taille " , np.shape(predictorTest), " apres la selection de variables"
+    run_classifiers(clfs,{'data': predictorTest, 'target': targetTest})
 
 # -------------------------------------------------------------------------------------------------------------------------#
-#Extraction des donnees et creations des sets de test et d'apprentissage
+
+# -------------------------------------------------------------------------------------------------------------------------#
 np.set_printoptions(threshold=np.nan)
 warnings.filterwarnings('ignore')
+def testClassif():
+    df=pd.read_csv('../data/credit.data', sep='\t')
 
-df=pd.read_csv('data\credit.data', sep='\t')
+    # on scinde les donnees :
+    predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]   #les predicteurs
+    target = df.values[:,15]                                        #la variable a predire
 
-# on scinde les donnees :
-predictor = df.values[:,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]]   #les predicteurs
-target = df.values[:,15]                                        #la variable a predire
+    #Pre-traitement des donnees pour augmenter le dataset
+    predictor, target = preProcessDatas(predictor, target)
 
-#print "On a " + str(np.shape(predictor)[0]) + " lignes dans les donnees"
-#print "On a " + str(np.shape(target)[0]) + " lignes dans les predictions"
+    #Pour l'apprentissage et pour les tests de validation
+    predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.30, random_state =42)
 
-#Pre-traitement des donnees pour augmenter le dataset
-predictor, target = preProcessDatas(predictor, target)
+    #testRf(predictorTrain,targetTrain)
+    selVarAndRunClassif(predictorTrain, targetTrain, predictorTest, targetTest)
 
-#Pour l'apprentissage et pour les tests de validation
-predictorTrain, predictorTest, targetTrain, targetTest = train_test_split(predictor, target, test_size = 0.30, random_state =42)
-
-testRf(predictorTrain,targetTrain)
-processAndSelVarAndRunClassif(predictorTrain, targetTrain, predictorTest, targetTest)
 #TODO plus de classsifieurs
 
 # -------------------------------------------------------------------------------------------------------------------------#
-
-
-# *************************************************************************************************************************#
-
+#testClassif()
