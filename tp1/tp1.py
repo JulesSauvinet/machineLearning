@@ -28,6 +28,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import PolynomialFeatures,StandardScaler,Imputer,OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
+import scipy
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #Extraction des donnees et creations des sets de test et d'apprentissage
@@ -417,7 +418,7 @@ def processAndSelVarAndRunClassif (predictorTrain, targetTrain, predictorTest, t
 def countVectorize(corpus, targ):
     vect = CountVectorizer(stop_words='english')
 
-    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=25, max_features=250)
+    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=15, max_features=500)
 
     vect.fit(corpus)
     vectorizer.fit(corpus) #cooccurences
@@ -450,7 +451,7 @@ def tfIdfize(X):
 
 # -------------------------------------------------------------------------------------------------------------------------#
 def truncateSVD(X):
-    svd = TruncatedSVD(n_components=25, algorithm="randomized", n_iter=7,
+    svd = TruncatedSVD(n_components=100, algorithm="randomized", n_iter=7,
                  random_state=42, tol=0.)
     svdX = svd.fit_transform(X)
 
@@ -459,18 +460,24 @@ def truncateSVD(X):
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
-#TEST
-def textMining():
-    df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+#Preparation du set de donnees textuelle pour faire de la classification
+def textMining(df2):
     corpus = df2.values[:, 1] # le predicteur
     targ = df2.values[:, 0]   # la variable a predire  # TODO train et test
 
     X,Y = countVectorize(corpus,targ) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
     X = tfIdfize(X)                   #calcul d'importance des termes a l'aide de cooccurence
     X = truncateSVD(X)                #reduction de sparse matrix avec SVD (single value detection)
-    run_classifiers(clfs, {'data' : X.astype(np.float), 'target' : Y.astype(np.float)})
+    return X,Y
+# -------------------------------------------------------------------------------------------------------------------------#
 
-#textMining()
+
+# -------------------------------------------------------------------------------------------------------------------------#
+#TEST
+def testTextMining():
+    df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+    X, Y = textMining(df2)
+    run_classifiers(clfs, {'data': X.astype(np.float), 'target': Y.astype(np.float)})
 # -------------------------------------------------------------------------------------------------------------------------#
 
 
@@ -479,8 +486,6 @@ def textMining():
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #III.Apprentissage non supervise : Detection d'anomalies
-
-df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -495,14 +500,14 @@ def showRawDatas(df):
     plt.ylabel('y')
     plt.show()
 
+#df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
 #showRawDatas(df3)
 # -------------------------------------------------------------------------------------------------------------------------#
 
 
 # -------------------------------------------------------------------------------------------------------------------------#
 # Detection d'anomalie selon deux technique : isolationforest ou LOF
-def detectAnomaly(df,method = 'isolationforest'):
-    X = df.values[:, [0,1]]
+def detectAnomaly(X,method = 'isolationforest', plot=True):
     # Premiere technique de detection d'anomalie
     # Isolation forest
     if (method == 'isolationforest'):
@@ -526,27 +531,30 @@ def detectAnomaly(df,method = 'isolationforest'):
         X_out_idx = np.where(y_pred_test != 1)
         X_outliers = X_train[X_out_idx]
 
-        # affichage des resultats de detection sur le set d'apprentissage et de validation
-        xx, yy = np.meshgrid(np.linspace(0, 1, 50), np.linspace(0, 1.5, 50))
-        Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
-        Z = Z.reshape(xx.shape)
+        if (plot == True):
+            # affichage des resultats de detection sur le set d'apprentissage et de validation
+            xx, yy = np.meshgrid(np.linspace(0, 1, 50), np.linspace(0, 1.5, 50))
+            Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+            Z = Z.reshape(xx.shape)
 
-        plt.title("IsolationForest")
-        plt.contourf(xx, yy, Z, cmap=plt.cm.Blues_r)
+            plt.title("IsolationForest")
+            plt.contourf(xx, yy, Z, cmap=plt.cm.Blues_r)
 
-        b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c='white')
-        b2 = plt.scatter(X_test[:, 0], X_test[:, 1], c='green')
-        c1 = plt.scatter(X_outliers_train[:, 0], X_outliers_train[:, 1], c='blue')
-        c2 = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
+            b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c='white')
+            b2 = plt.scatter(X_test[:, 0], X_test[:, 1], c='green')
+            c1 = plt.scatter(X_outliers_train[:, 0], X_outliers_train[:, 1], c='blue')
+            c2 = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
 
-        plt.axis('tight')
-        plt.xlim((0, 1))
-        plt.ylim((0, 1.5))
-        plt.legend([b1, b2, c1,c2],
-                   ["obs d'apprentissage","anomalies detectees sur les obs d'apprentissage"
-                    "nouvelles obs", "anomalies detectees sur les nouvelles obs"],
-                   loc="upper left")
-        plt.show()
+            plt.axis('tight')
+            plt.xlim((0, 1))
+            plt.ylim((0, 1.5))
+            plt.legend([b1, b2, c1,c2],
+                       ["obs d'apprentissage","anomalies detectees sur les obs d'apprentissage"
+                        "nouvelles obs", "anomalies detectees sur les nouvelles obs"],
+                       loc="upper left")
+            plt.show()
+        else :
+            print X_outliers
 
     # Deuxieme technique de detection d'anomalie
     # Local Outlier Factor
@@ -570,21 +578,102 @@ def detectAnomaly(df,method = 'isolationforest'):
 
         X_outliers = np.array(X_outliers)
 
-        plt.title("Local Outlier Factor (LOF)")
+        if (plot == True):
+            plt.title("Local Outlier Factor (LOF)")
 
-        a = plt.scatter(X[:, 0], X[:, 1], c='green')
-        b = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
+            a = plt.scatter(X[:, 0], X[:, 1], c='green')
+            b = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
 
-        plt.axis('tight')
-        plt.xlim((0, 1))
-        plt.ylim((0, 1.5))
-        plt.legend([a, b],["observations normales","observations anormales"],loc="upper left")
+            plt.axis('tight')
+            plt.xlim((0, 1))
+            plt.ylim((0, 1.5))
+            plt.legend([a, b],["observations normales","observations anormales"],loc="upper left")
 
-        plt.show()
+            plt.show()
+        else :
+            print X_outliers
 
 # Test
-#detectAnomaly(df3,'isolationforest')
-#detectAnomaly(df3,'lof')
+#1. Sur la base de données Mouse
+#TODO normaliser les donnees
+# #df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
+#X = df.values[:, [0,1]]
+#detectAnomaly(X,'isolationforest')
+#detectAnomaly(X,'lof')
+
+# Test
+# 2. Sur le	jeu	de données des SMS
+df2 = pd.read_csv('SMSSpamCollection.data', sep='\t')
+
+#Preparation des donnees
+#representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
+X, Y = textMining(df2)
+#print np.shape(X)
+
+#concatenation de la representation SVD des textes SMS et la categorie Spam/Ham
+Y = np.reshape(Y, (len(Y), 1))
+Z = np.concatenate((X, Y), axis=1)
+
+#extraction des SMS labelle Spam ou Ham
+Spam = Z[Z[:, Z.shape[1]-1] == 0]
+Ham =  Z[Z[:, Z.shape[1]-1] == 1]
+
+#recuperer la moitie des donnees Ham aleatoirement
+halfHam = Ham[np.random.randint(0,Ham.shape[0],Ham.shape[0]/2)]
+#print np.shape(halfHam)
+
+#recuperer 20 spams aleatoirement
+sampleSpam = Spam[np.random.randint(0,Spam.shape[0],20)]
+#print np.shape(sampleSpam)
+
+#le jeu de donnee sur lequel on va faire de la detection d'anomalie
+datas = np.concatenate((halfHam, sampleSpam), axis=0)
+
+#les index des outliers
+outs = np.argwhere(datas[:, datas.shape[1]-1] == 0)
+
+#on supprime la colonne avec la valeur cible Spam/Ham
+datas = scipy.delete(datas, datas.shape[1]-1, 1)
+
+print np.shape(datas)
+#on fit le modele
+clf = IsolationForest(n_estimators=100, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.01)
+clf.fit(datas)
+y_pred = clf.predict(datas)
+
+#les outliers predits
+X_out_idx = np.where(y_pred != 1)
+
+#X_out_idx.append(2412)#, 2413, 2414, 2415])
+outs = np.transpose(outs)
+
+outs = outs[0]
+X_out_idx = X_out_idx[0]
+
+#print outs
+#print X_out_idx
+
+FP = len(np.intersect1d(outs, X_out_idx))
+FN = len(X_out_idx)-FP
+
+V = datas.shape[0]-len(X_out_idx)
+
+VN = len(outs) - FP
+VP = V - VN
+
+print "Matrice de confusion"
+print " ______________________________", "\n"  \
+      "| P\R      Spam        Ham     |","\n"  \
+      "| ---------------------------- |","\n"  \
+      "| Spam", " "*4, FP, " "*8, FN, " "*3, "|","\n"  \
+      "| ---------------------------- |","\n"  \
+      "| Ham ", " "*4, VN, " "*7, VP, " "*2, "|","\n"  \
+      "|_____________________________ |","\n"  \
+
+
+
+
+
 # -------------------------------------------------------------------------------------------------------------------------#
 
 
