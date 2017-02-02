@@ -1,16 +1,114 @@
 # coding=utf-8
-
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import scipy
-from sklearn.ensemble import IsolationForest
-from sklearn.model_selection import train_test_split
+from scipy import stats
+import matplotlib.pyplot as plt
+import matplotlib.font_manager
+import pandas as pd
 
-from prediction.lof import outliers
+from sklearn import svm
+from sklearn.covariance import EllipticEnvelope
+from sklearn.ensemble import IsolationForest
 from text_mining import textMining
 
 
+# -------------------------------------------------------------------------------------------------------------------------#
+def runDetection(outliers, inliers, X, outs):
+    outliers_fraction = 10. / X.shape[0]
+    rng = np.random.RandomState(69)
+    clusters_separation = [0]#, 1, 2]
+
+    # les differents outils de detection d'anomalies
+    classifiers = {
+        "One-Class SVM": svm.OneClassSVM(nu=0.95 * outliers_fraction,
+                                         kernel="rbf", gamma=0.1),
+        "Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
+        "Isolation Forest": IsolationForest(n_estimators=100,
+                                            max_samples='auto',
+                                            bootstrap=False,
+                                            contamination=outliers_fraction,
+                                            random_state=rng)}
+
+    # Compare given classifiers under given settings
+    xx, yy = np.meshgrid(np.linspace(-0.2, 1.3, 100), np.linspace(-0.2, 1.9, 100))
+
+    # Fit the problem with varying cluster separation
+    for i, offset in enumerate(clusters_separation):
+        np.random.seed(69)
+
+        # Fit the model
+        plt.figure(figsize=(10.8, 3.6))
+
+
+        for i, (clf_name, clf) in enumerate(classifiers.items()):
+            # fit the data and tag outliers
+            clf.fit(X)
+            scores_pred = clf.decision_function(X)
+            threshold = stats.scoreatpercentile(scores_pred,
+                                                100 * outliers_fraction)
+            y_pred = clf.predict(X)
+
+            X_out_idx = np.where(y_pred == -1)[0]
+
+            print clf_name
+            print "True outliers     :",  outs
+            print "Outliers detected :", X_out_idx
+
+            # Calcul de la matrice de confusion a la main
+            FP = len(np.intersect1d(outs, X_out_idx))
+            FN = len(X_out_idx) - FP
+
+            V = X.shape[0] - len(X_out_idx)
+            VN = len(outs) - FP
+            VP = V - VN
+
+            n_errors = (VN + FN)
+
+            print "Matrice de confusion"
+            print " ________________________________", "\n"  \
+                  "| P\R      Outliers        Inliers     |","\n"  \
+                  "| ------------------------------- |","\n"  \
+                  "| Outliers", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
+                  "| ------------------------------- |","\n"  \
+                  "| Inliers ", " "*4, VN, " "*7, VP, " "*3, "|","\n"  \
+                  "|________________________________ |","\n"  \
+
+            # plot the levels lines and the points
+            Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+            Z = Z.reshape(xx.shape)
+            subplot = plt.subplot(1, 3, i + 1)
+
+            subplot.contourf(xx, yy, Z, levels=np.linspace(Z.min(), threshold, 7),
+                             cmap=plt.cm.Blues_r)
+
+            a = subplot.contour(xx, yy, Z, levels=[threshold],
+                                linewidths=2, colors='red')
+
+            subplot.contourf(xx, yy, Z, levels=[threshold, Z.max()],
+                             colors='orange')
+
+            b = subplot.scatter(inliers[:, 0], inliers[:, 1], c='white')
+            c = subplot.scatter(outliers[:, 0], outliers[:, 1], c='black')
+
+            subplot.axis('tight')
+
+            subplot.legend(
+                [a.collections[0], b, c],
+                ['learned decision function', 'true inliers', 'true outliers'],
+                prop=matplotlib.font_manager.FontProperties(size=11),
+                loc='upper left')
+
+            subplot.set_title("%d. %s (errors: %d)" % (i + 1, clf_name, n_errors))
+            subplot.set_xlim((-0.2, 1.3))
+            subplot.set_ylim((-0.2, 1.9))
+
+        plt.subplots_adjust(0.04, 0.1, 0.96, 0.92, 0.1, 0.26)
+
+    plt.show()
+# -------------------------------------------------------------------------------------------------------------------------#
+
+# -------------------------------------------------------------------------------------------------------------------------#
+# Plot les donnees (coordonnees a deux dimensions)
 def showRawDatas(df):
     x = df.values[:, 0]
     y = df.values[:, 1]
@@ -20,176 +118,110 @@ def showRawDatas(df):
     plt.xlabel('x')
     plt.ylabel('y')
     plt.show()
-
-#df3=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ')
-#showRawDatas(df3)
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
-# Detection d'anomalie selon deux technique : isolationforest ou LOF
-def detectAnomaly(X,method = 'isolationforest', plot=True):
-    # Premiere technique de detection d'anomalie
-    # Isolation forest
-    if (method == 'isolationforest'):
-        X_train, X_test = train_test_split(X, test_size = 0.30, random_state =42)
-
-        # creation du modele
-        clf = IsolationForest(n_estimators=100,max_samples='auto', random_state=0)
-
-        #construction du modele a partir des donnes d'apprentissage
-        clf.fit(X_train)
-        y_pred_train = clf.predict(X_train)
-        X_out_idx = np.where(y_pred_train!=1)
-        X_outliers_train = X_train[X_out_idx]
-
-        #mesure de verification
-        #y_pred_outliers = clf.predict(X_outliers_train)
-        #print y_pred_outliers
-
-        #execution du modele construit sur le jeu de validation
-        y_pred_test = clf.predict(X_test)
-        X_out_idx = np.where(y_pred_test != 1)
-        X_outliers = X_train[X_out_idx]
-
-        if (plot == True):
-            # affichage des resultats de detection sur le set d'apprentissage et de validation
-            xx, yy = np.meshgrid(np.linspace(0, 1, 50), np.linspace(0, 1.5, 50))
-            Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
-            Z = Z.reshape(xx.shape)
-
-            plt.title("IsolationForest")
-            plt.contourf(xx, yy, Z, cmap=plt.cm.Blues_r)
-
-            b1 = plt.scatter(X_train[:, 0], X_train[:, 1], c='white')
-            b2 = plt.scatter(X_test[:, 0], X_test[:, 1], c='green')
-            c1 = plt.scatter(X_outliers_train[:, 0], X_outliers_train[:, 1], c='blue')
-            c2 = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
-
-            plt.axis('tight')
-            plt.xlim((0, 1))
-            plt.ylim((0, 1.5))
-            plt.legend([b1, b2, c1,c2],
-                       ["obs d'apprentissage","anomalies detectees sur les obs d'apprentissage"
-                        "nouvelles obs", "anomalies detectees sur les nouvelles obs"],
-                       loc="upper left")
-            plt.show()
-        else :
-            print X_outliers
-
-    # Deuxieme technique de detection d'anomalie
-    # Local Outlier Factor
-    # https://github.com/damjankuznar/pylof/blob/master/lof.py -> marche pas? trop lent ou trop de outlier?
-    # http://scikit-learn.org/dev/auto_examples/neighbors/plot_lof.html
-    if (method == 'lof'):
-        instances = []
-        for x in X:
-            instances.append((x[0], x[1]))
-
-        result = outliers(1, instances)
-
-        X_outliers = []
-        for outlier in result:
-            #print outlier["lof"], outlier["instance"]
-            x,y = outlier["instance"]
-            coord = []
-            coord.append(x)
-            coord.append(y)
-            X_outliers.append(coord)
-
-        X_outliers = np.array(X_outliers)
-
-        if (plot == True):
-            plt.title("Local Outlier Factor (LOF)")
-
-            a = plt.scatter(X[:, 0], X[:, 1], c='green')
-            b = plt.scatter(X_outliers[:, 0], X_outliers[:, 1], c='red')
-
-            plt.axis('tight')
-            plt.xlim((0, 1))
-            plt.ylim((0, 1.5))
-            plt.legend([a, b],["observations normales","observations anormales"],loc="upper left")
-
-            plt.show()
-        else :
-            print X_outliers
-
-# Test
-#1. Sur la base de données Mouse
-#TODO normaliser les donnees
-# #df3=pd.read_csv('mouse-synthetic-data.txt', sep=' ')
-#X = df.values[:, [0,1]]
-#detectAnomaly(X,'isolationforest')
-#detectAnomaly(X,'lof')
-
-
-# Test
 # 2. Sur le	jeu	de données des SMS
-df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
+def preProcessDatas(df):
+    Z = df.values[:, [0, 1]]
 
-#Preparation des donnees
-#representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
-X, Y = textMining(df2, 10, 500, 50)
-#print np.shape(X)
+    # extraction des SMS labelle Spam ou Ham
+    Spam = Z[Z[:, 0] == 'spam']
+    Ham = Z[Z[:, 0] == 'ham']
 
-#concatenation de la representation SVD des textes SMS et la categorie Spam/Ham
-Y = np.reshape(Y, (len(Y), 1))
-Z = np.concatenate((X, Y), axis=1)
+    # recuperer la moitie des donnees Ham aleatoirement
+    halfHam = Ham[np.random.randint(0, Ham.shape[0], Ham.shape[0] / 2)]
 
-#extraction des SMS labelle Spam ou Ham
-Spam = Z[Z[:, Z.shape[1]-1] == 0]
-Ham =  Z[Z[:, Z.shape[1]-1] == 1]
+    # recuperer 20 spams aleatoirement
+    sampleSpam = Spam[np.random.randint(0, Spam.shape[0], 20)]
 
-#recuperer la moitie des donnees Ham aleatoirement
-halfHam = Ham[np.random.randint(0,Ham.shape[0],Ham.shape[0]/2)]
-#print np.shape(halfHam)
+    datas = np.concatenate((halfHam, sampleSpam), axis=0)
+    np.random.shuffle(datas)
 
-#recuperer 20 spams aleatoirement
-sampleSpam = Spam[np.random.randint(0,Spam.shape[0],20)]
-#print np.shape(sampleSpam)
+    df = pd.DataFrame(datas)
 
-#le jeu de donnee sur lequel on va faire de la detection d'anomalie
-datas = np.concatenate((halfHam, sampleSpam), axis=0)
+    X, Y = textMining(df, 0.5, 1, 1000, 100, False, False)
+    Y = np.reshape(Y, (len(Y), 1))
 
-#les index des outliers
-outs = np.argwhere(datas[:, datas.shape[1]-1] == 0)
+    # le jeu de donnee sur lequel on va faire de la detection d'anomalie
+    datas = np.concatenate((X, Y), axis=1)
 
-#on supprime la colonne avec la valeur cible Spam/Ham
-datas = scipy.delete(datas, datas.shape[1]-1, 1)
+    # les index des outliers
+    outs = np.argwhere(datas[:, datas.shape[1] - 1] == 0)
 
-print np.shape(datas)
-#on fit le modele
-clf = IsolationForest(n_estimators=500, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.02)#07)
-clf.fit(datas)
-y_pred = clf.predict(datas)
+    # on supprime la colonne avec la valeur cible Spam/Ham
+    datas = scipy.delete(datas, datas.shape[1] - 1, 1)
 
-#les outliers predits
-X_out_idx = np.where(y_pred != 1)
+    outliers = np.where(datas[:, datas.shape[1] - 1] == 0)
+    inliers = np.where(datas[:, datas.shape[1] - 1] == 1)
 
-#X_out_idx.append(2412)#, 2413, 2414, 2415])
-outs = np.transpose(outs)
+    print np.shape(datas)
 
-outs = outs[0]
-X_out_idx = X_out_idx[0]
-
-#print outs
-#print X_out_idx
-
-FP = len(np.intersect1d(outs, X_out_idx))
-FN = len(X_out_idx)-FP
-
-V = datas.shape[0]-len(X_out_idx)
-
-VN = len(outs) - FP
-VP = V - VN
-
-print "Matrice de confusion"
-print " ______________________________", "\n"  \
-      "| P\R      Spam        Ham     |","\n"  \
-      "| ---------------------------- |","\n"  \
-      "| Spam", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
-      "| ---------------------------- |","\n"  \
-      "| Ham ", " "*4, VN, " "*7, VP, " "*2, "|","\n"  \
-      "|_____________________________ |","\n"  \
+    return outs, datas, outliers, inliers
+# -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
+if __name__ == "__main__":
+    # ************************************************************#
+    # Test
+    # 1. Sur la base de données Mouse
+    print ""
+    print "Detection d'anomalie sur les donnees de Mickey"
+    print ""
+    df=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ')
+    X = df.values[:, [0,1]]
+
+    outliers = X[0:9]
+    inliers = X[9:len(X)]
+
+    true_outs_idx = np.array([0,1,2,3,4,5,6,7,8,9])
+
+    runDetection(outliers, inliers, X, true_outs_idx)
+    # ************************************************************#
+
+
+    # ************************************************************#
+    # Test
+    # 2. Sur le	jeu	de données des SMS
+    print ""
+    print "*"*75
+    print ""
+    print "Detection d'anomalie sur les donnees de SMS"
+    print ""
+    df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
+    outs, datas, outliers, inliers = preProcessDatas(df)
+
+    print "Isolation Forest"
+
+    clf = IsolationForest(n_estimators=1000, max_samples='auto', random_state=0, bootstrap=False, n_jobs=1,
+                          contamination=(20. / datas.shape[0]) * 3)
+    clf.fit(datas)
+    y_pred = clf.predict(datas)
+    scores = clf.decision_function(datas)
+
+    X_out_idx = np.where(y_pred == -1)
+
+    outs = np.transpose(outs)
+    outs = outs[0]
+
+    X_out_idx = X_out_idx[0]
+
+    # Calcul de la matrice de confusion a la main
+    FP = len(np.intersect1d(outs, X_out_idx))
+    FN = len(X_out_idx) - FP
+
+    V = datas.shape[0] - len(X_out_idx)
+    VN = len(outs) - FP
+    VP = V - VN
+
+    print "Matrice de confusion"
+    print " ______________________________", "\n"  \
+          "| P\R      Spam        Ham     |","\n"  \
+          "| ---------------------------- |","\n"  \
+          "| Spam", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
+          "| ---------------------------- |","\n"  \
+          "| Ham ", " "*4, VN, " "*7, VP, " "*2, "|","\n"  \
+          "|_____________________________ |","\n"  \
+
+    # ************************************************************#
 

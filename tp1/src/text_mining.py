@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from model.Classifiers import run_classifiers, clfs, clfs2
+from model.classification import run_classifiers, clfs, clfs2
 
 #II. Apprentissage supervisé sur	des	données	textuelles :	Feature	engineering	et	Classification
 # -------------------------------------------------------------------------------------------------------------------------#

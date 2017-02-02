@@ -10,14 +10,12 @@ from sklearn.model_selection import train_test_split
 from prediction.lof import outliers
 from text_mining import textMining
 
-
 # Test Sur le jeu de données des SMS
-
 df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
 
 #Preparation des donnees
 #representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
-X, Y = textMining(df2, 10, 500, 50)
+X, Y = textMining(df2, 1.0, 10, 500, 50, False, True)
 #print np.shape(X)
 
 #concatenation de la representation SVD des textes SMS et la categorie Spam/Ham

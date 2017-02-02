@@ -14,7 +14,7 @@ from sklearn.metrics import r2_score
 from sklearn.model_selection import ShuffleSplit
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures, Imputer,OneHotEncoder
-from model.Classifiers import clfs, run_classifiers
+from model.classification import clfs, run_classifiers
 
 
 #I. Apprentissage	supervisé :	Feature	engineering	et	Classification
