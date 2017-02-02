@@ -18,7 +18,7 @@ clfs =	{
     'NBS' : GaussianNB(),
 
     #Random Forest
-    'RF':   RandomForestClassifier(n_estimators=20),
+    'RF':   RandomForestClassifier(n_estimators=100),
 
     #K plus proches voisins
     'KNN':  KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'),
@@ -27,13 +27,38 @@ clfs =	{
     'CART': tree.DecisionTreeClassifier(min_samples_split=50, random_state=99,criterion='gini'),
 
     #Adaboost avec arbre de décision
-    'ADAB': AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'),algorithm="SAMME",n_estimators=50),
+    'ADAB': AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'),algorithm="SAMME",n_estimators=100),
 
     # MLP perceptron multi-couches,
-    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(100,), random_state=3, learning_rate = 'adaptive'),
+    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(200,10), random_state=3, learning_rate = 'adaptive'),
 
     #Gradient boosting classifier
-    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=10, subsample=0.3,min_samples_split=2,
+    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=100, subsample=0.3,min_samples_split=2,
+                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
+}
+
+#Pour un execution rapide (moins precise)
+clfs2 =	{
+    #Naive Bayes Classifier
+    'NBS' : GaussianNB(),
+
+    #Random Forest
+    'RF':   RandomForestClassifier(n_estimators=10),
+
+    #K plus proches voisins
+    'KNN':  KNeighborsClassifier(n_neighbors=10,  weights='uniform', algorithm='auto', p=2, metric='minkowski'),
+
+    #Arbres de décision CART
+    'CART': tree.DecisionTreeClassifier(min_samples_split=20, random_state=99,criterion='gini'),
+
+    #Adaboost avec arbre de décision
+    'ADAB': AdaBoostClassifier(DecisionTreeClassifier(max_depth=1,random_state=99,criterion='gini'),algorithm="SAMME",n_estimators=10),
+
+    # MLP perceptron multi-couches,
+    'MLP' : MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5,), random_state=3, learning_rate = 'adaptive'),
+
+    #Gradient boosting classifier
+    'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=50, subsample=0.3,min_samples_split=2,
                                         min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
 }
 

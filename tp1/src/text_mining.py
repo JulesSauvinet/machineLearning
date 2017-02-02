@@ -3,18 +3,22 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from model.Classifiers import run_classifiers, clfs
+from model.Classifiers import run_classifiers, clfs, clfs2
 
-
+#II. Apprentissage supervisé sur	des	données	textuelles :	Feature	engineering	et	Classification
 # -------------------------------------------------------------------------------------------------------------------------#
-def countVectorize(corpus, targ, minOccurence, maxfeatures = 150):
-    vect = CountVectorizer(stop_words='english')
-    vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=minOccurence, max_features=maxfeatures)
+def countVectorize(corpus, targ, max_df, minOccurence, maxfeatures, bigram, stop_words):
 
-    vect.fit(corpus)
+    if (stop_words == True):
+        vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=minOccurence, max_features=maxfeatures)
+    else :
+        if (bigram == False):
+            vectorizer = CountVectorizer(stop_words=None,max_df=max_df, min_df=minOccurence, max_features=maxfeatures)
+
+        else:
+            vectorizer = CountVectorizer(ngram_range=(1, 2), stop_words=None,max_df=max_df, min_df=minOccurence, max_features=maxfeatures, token_pattern=r'\b\w+\b')
+
     vectorizer.fit(corpus) #cooccurences
-
-    X1 = vect.transform(corpus)
     X = vectorizer.transform(corpus)
 
     analyze = vectorizer.build_analyzer()
@@ -43,24 +47,25 @@ def truncateSVD(X, svdSize = 25):
 
 # -------------------------------------------------------------------------------------------------------------------------#
 #Preparation du set de donnees textuelle pour faire de la classification
-def textMining(df2, minOccurence = 15, maxfeatures=100, svdSize = 25):
+def textMining(df2, max_df=1.0, minOccurence = 15, maxfeatures=100, svdSize = 25, bigram = False,  stop_words = True):
     corpus = df2.values[:, 1] # le predicteur
     targ = df2.values[:, 0]   # la variable a predire  # TODO train et test
 
-    X,Y = countVectorize(corpus,targ, minOccurence, maxfeatures) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
-    X = tfIdfize(X)                   #calcul d'importance des termes a l'aide de cooccurence
-    X = truncateSVD(X, svdSize)                #reduction de sparse matrix avec SVD (single value detection)
+    X,Y = countVectorize(corpus,targ, max_df,
+                         minOccurence,  maxfeatures,
+                         bigram, stop_words) #ajout pour chaque SMS des occurences des termes les plus frequents du dataset de SMS
+    X = tfIdfize(X)                          #calcul d'importance des termes a l'aide de cooccurence
+    X = truncateSVD(X, svdSize)              #reduction de sparse matrix avec SVD (single value detection)
     return X,Y
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
-#TEST
-def testTextMining():
-    df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
-    X, Y = textMining(df2)
-    run_classifiers(clfs, {'data': X.astype(np.float), 'target': Y.astype(np.float)})
+#Procedure de test
+def testTextMining(df2, max_df=1.0, minOccurence = 15, maxfeatures=100, svdSize = 25, bigram = False,  stop_words = True):
+    X, Y = textMining(df2, max_df, minOccurence, maxfeatures, svdSize, bigram,  stop_words)
+    run_classifiers(clfs2, {'data': X.astype(np.float), 'target': Y.astype(np.float)})
 # -------------------------------------------------------------------------------------------------------------------------#
 
-#df2 = pd.read_csv('data\SMSSpamCollection.data', sep='\t')
-#X, Y = textMining(df2)
-#testTextMining()
+if __name__ == "__main__":
+    df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
+    testTextMining(df2, 1.0, 15, 200, 25, False, True)

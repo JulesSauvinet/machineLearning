@@ -158,7 +158,7 @@ datas = scipy.delete(datas, datas.shape[1]-1, 1)
 
 print np.shape(datas)
 #on fit le modele
-clf = IsolationForest(n_estimators=100, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.007)
+clf = IsolationForest(n_estimators=500, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.02)#07)
 clf.fit(datas)
 y_pred = clf.predict(datas)
 
