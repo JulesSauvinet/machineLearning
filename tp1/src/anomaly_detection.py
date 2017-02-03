@@ -23,7 +23,7 @@ def runDetection(outliers, inliers, X, outs):
         "One-Class SVM": svm.OneClassSVM(nu=0.95 * outliers_fraction,
                                          kernel="rbf", gamma=0.1),
         "Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
-        "Isolation Forest": IsolationForest(n_estimators=100,
+        "Isolation Forest": IsolationForest(n_estimators=1000,
                                             max_samples='auto',
                                             bootstrap=False,
                                             contamination=outliers_fraction,
@@ -65,13 +65,13 @@ def runDetection(outliers, inliers, X, outs):
             n_errors = (VN + FN)
 
             print "Matrice de confusion"
-            print " ________________________________", "\n"  \
-                  "| P\R      Outliers        Inliers     |","\n"  \
-                  "| ------------------------------- |","\n"  \
-                  "| Outliers", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
-                  "| ------------------------------- |","\n"  \
-                  "| Inliers ", " "*4, VN, " "*7, VP, " "*3, "|","\n"  \
-                  "|________________________________ |","\n"  \
+            print " _________________________________", "\n"  \
+                  "| P\R      Outliers    Inliers     |","\n"  \
+                  "| -------------------------------- |","\n"  \
+                  "| Outliers ", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
+                  "| -------------------------------- |","\n"  \
+                  "| Inliers  ", " "*4, VN, " "*7, VP, " "*3, "|","\n"  \
+                  "|_________________________________ |","\n"  \
 
             # plot the levels lines and the points
             Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
@@ -140,7 +140,7 @@ def preProcessDatas(df):
 
     df = pd.DataFrame(datas)
 
-    X, Y = textMining(df, 0.5, 1, 2500, 750, False, False)
+    X, Y = textMining(df, 1., 1, 10000, 1300, False, False)
     Y = np.reshape(Y, (len(Y), 1))
 
     # le jeu de donnee sur lequel on va faire de la detection d'anomalie
@@ -168,15 +168,15 @@ if __name__ == "__main__":
     print ""
     print "Detection d'anomalie sur les donnees de Mickey"
     print ""
-    df=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ')
+    df=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ', header=None)
     X = df.values[:, [0,1]]
 
-    outliers = X[0:9]
-    inliers = X[9:len(X)]
+    outliers = X[0:10]
+    inliers = X[11:len(X)]
 
     true_outs_idx = np.array([0,1,2,3,4,5,6,7,8,9])
 
-    runDetection(outliers, inliers, X, true_outs_idx)
+    #runDetection(outliers, inliers, X, true_outs_idx)
     # ************************************************************#
 
 
@@ -188,13 +188,14 @@ if __name__ == "__main__":
     print ""
     print "Detection d'anomalie sur les donnees de SMS"
     print ""
-    df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
+    df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t', header=None)
     outs, datas, outliers, inliers = preProcessDatas(df)
 
     print "Isolation Forest"
 
-    clf = IsolationForest(n_estimators=1000, max_samples='auto', random_state=0, bootstrap=False, n_jobs=1,
-                          contamination=(20. / datas.shape[0]) * 3)
+    clf = IsolationForest(n_estimators=500, max_samples='auto',
+                          random_state=0, bootstrap=False, n_jobs=1,
+                          contamination=(20. / datas.shape[0]) * 20)
     clf.fit(datas)
     y_pred = clf.predict(datas)
     scores = clf.decision_function(datas)

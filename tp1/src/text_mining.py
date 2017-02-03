@@ -13,10 +13,16 @@ def countVectorize(corpus, targ, max_df, minOccurence, maxfeatures, bigram, stop
         vectorizer = CountVectorizer(stop_words='english',max_df=1.0, min_df=minOccurence, max_features=maxfeatures)
     else :
         if (bigram == False):
-            vectorizer = CountVectorizer(stop_words=None,max_df=max_df, min_df=minOccurence, max_features=maxfeatures)
+            spamWords = ['prize', 'cash', 'money', 'won', 'call', 'free', 'congratulations', 'award'
+                         'awarded', 'prizes', 'awards', 'win', 'guaranteed', 'offer', 'credits',
+                         'vouchers' , 'voucher', 'bonus']
+            vectorizer = CountVectorizer(stop_words=None,
+                                         max_df=max_df, min_df=minOccurence,
+                                         max_features=maxfeatures)
 
         else:
-            vectorizer = CountVectorizer(ngram_range=(1, 2), stop_words=None,max_df=max_df, min_df=minOccurence, max_features=maxfeatures, token_pattern=r'\b\w+\b')
+            vectorizer = CountVectorizer(ngram_range=(1, 2), stop_words=None,max_df=max_df,
+                                         min_df=minOccurence, max_features=maxfeatures, token_pattern=r'\b\w+\b')
 
     vectorizer.fit(corpus) #cooccurences
     X = vectorizer.transform(corpus)
@@ -67,5 +73,5 @@ def testTextMining(df2, max_df=1.0, minOccurence = 15, maxfeatures=100, svdSize 
 # -------------------------------------------------------------------------------------------------------------------------#
 
 if __name__ == "__main__":
-    df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
+    df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t', header=None)
     testTextMining(df2, 1.0, 15, 200, 25, False, True)

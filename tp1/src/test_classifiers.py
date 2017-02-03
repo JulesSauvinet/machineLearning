@@ -334,6 +334,6 @@ def testClassif(df, verbose = False, varSelectionMethod = 'rf'):
 if __name__ == "__main__":
     np.set_printoptions(threshold=np.nan)
     warnings.filterwarnings('ignore')
-    df=pd.read_csv('../data/credit.data', sep='\t')
+    df=pd.read_csv('../data/credit.data', sep='\t', header=None)
     #testClassif(df, False, 'kb')
     testClassif(df, False, 'rf')

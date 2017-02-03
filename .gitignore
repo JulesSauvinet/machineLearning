@@ -1,2 +1,7 @@
 tp1/.idea
 .idea
+*.pyc
+tp1/*.pyc
+tp1/src/*.pyc
+tp1/src/model/*.pyc
+tp1/src/prediction/*.pyc
