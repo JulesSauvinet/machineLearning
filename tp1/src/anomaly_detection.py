@@ -207,7 +207,7 @@ def preProcessDatas(df):
     df = pd.DataFrame(datas)
 
     # on execute le code textMining
-    X, Y = textMining(df, 0.5, 1, 2500, 750, False, False)
+    X, Y = textMining(df, 0.5, 1, 2500, 750, False, True)
     Y = np.reshape(Y, (len(Y), 1))
 
     # le jeu de donnee sur lequel on va faire de la detection d'anomalie
