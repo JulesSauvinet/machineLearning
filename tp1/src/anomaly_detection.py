@@ -205,12 +205,12 @@ if __name__ == "__main__":
     df=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ', header=None)
     X = df.values[:, [0,1]]
 
-    inliers = X[0:len(X)-10]
-    outliers = X[len(X)-10:]
+    outliers = X[0:10]
+    inliers = X[11:len(X)]
 
     true_outs_idx = np.array([0,1,2,3,4,5,6,7,8,9])
 
-    runDetection(outliers, inliers, X, true_outs_idx)
+    #runDetection(outliers, inliers, X, true_outs_idx)
     # ************************************************************#
 
 
@@ -225,12 +225,10 @@ if __name__ == "__main__":
     df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t', header=None)
     outs, datas, outliers, inliers = preProcessDatas(df)
 
-    print ' Detection avec Isolation Forest'
+    #print ' Detection avec Isolation Forest'
     #isolationForest(outs, datas, outliers, inliers)
 
-    
-    print ' Detection avec les 3 methodes'
-    #runDetection(outliers, inliers, X, true_outs_idx)
+    runDetection(outliers, inliers, X, true_outs_idx)
 
 
 
