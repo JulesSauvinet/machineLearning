@@ -1,6 +1,8 @@
 # coding=utf-8
 import time
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold
@@ -8,6 +10,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier, tree
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -34,7 +37,18 @@ clfs =	{
 
     #Gradient boosting classifier
     'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=100, subsample=0.3,min_samples_split=2,
-                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
+                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0),
+
+    #Bagging with KNearestNeighbours
+    'BC With KNN'  : BaggingClassifier(KNeighborsClassifier(),max_samples=0.5, max_features=0.5),
+
+    # Extra Trees Classifier
+    'ETC' : ExtraTreesClassifier(n_estimators=100, max_depth=None, min_samples_split=50, random_state=0),
+
+    # Scalable Linear Support Vector Machine for classification
+    'SVC' : SVC(kernel='rbf', probability=True)
+
+    #TODO use the VOTING CLASSIFIERS
 }
 
 #Pour un execution rapide (moins precise)
@@ -59,7 +73,16 @@ clfs2 =	{
 
     #Gradient boosting classifier
     'GBC' : GradientBoostingClassifier( loss='deviance', learning_rate=0.1, n_estimators=50, subsample=0.3,min_samples_split=2,
-                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0)
+                                        min_samples_leaf=1, max_depth=1, init=clf_init,random_state=1, max_features=None, verbose=0),
+
+    # Bagging with KNearestNeighbours
+    'BC With KNN': BaggingClassifier(KNeighborsClassifier(), max_samples=0.5, max_features=0.5),
+
+    # Extra Trees Classifier
+    'ETC': ExtraTreesClassifier(n_estimators=20, max_depth=None, min_samples_split=10, random_state=0),
+
+    # Scalable Linear Support Vector Machine for classification
+    'SVC': SVC(kernel='rbf', probability=True)
 }
 
 # -------------------------------------------------------------------------------------------------------------------------#
