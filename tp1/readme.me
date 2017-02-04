@@ -1,0 +1,45 @@
+******************************
+*	 TP1 Machine Learning    *
+*							 *
+******************************
+
+Auteurs : 
+Jules Sauvinet
+Marine Ruiz
+
+Date :
+4 février 2017
+
+Structure de l'archive :
++---data
++---src
+    +---model
+    +---prediction
+	+---test_classifiers.py
+	+---text_mining.py
+	+---anomaly_detection.py
+	
+
+Le fichier test_classifiers.py contient le code de la partie 1 :
+I. Apprentissage supervisé : Feature engineering et ClassificationI. Apprentissage supervisé : Feature engineering et Classification
+-> execution de 7 classifieurs (Random Forest, Decision Tree, Adaboost with Decision Tree, Gradient 
+GradientBoostingClassifier, MLPClassifier, KNeighborsClassifier et Naive Bayes Classifier)
+après prétraitement des données, analyse ACP et ajout de combinaison polynomiales aux données (optionnels)
+et sélection de variables avec Random Forest (possibilité de changer par la méthode selectKBest)
+sur des données de crédit
+
+
+Le fichier text_mining.py contient le code de la partie 2 :
+II. Apprentissage supervisé sur des données textuelles : Feature engineering et Classification
+-> Analyse textuelle des données avec un CountVetorizer, TDIDF et extraction d'une SVD,
+puis exécution des 7 classifieurs sur des données de SMS pour détecter ou non des SPAMS
+
+
+Le fichier anomaly_detection.py contient le code de la partie 3 :
+III. Apprentissage non supervisé : Détection d’anomalies
+-> Detection de points d'anomalies dans le scatter plot de la tête de Mickey
+avec IsolationForest, Robust covariance et One Class SVM
+
+
+
+
