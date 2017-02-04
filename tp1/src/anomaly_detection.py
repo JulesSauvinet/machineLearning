@@ -117,14 +117,11 @@ def runDetectionSMS(outliers, inliers, X, outs):
 
     # les differents outils de detection d'anomalies
     classifiers = {
-        "One-Class SVM": svm.OneClassSVM(nu=0.95 *outliers_fraction,kernel="rbf", gamma=0.1),
+        "One-Class SVM": svm.OneClassSVM(nu=0.95*outliers_fraction,kernel="rbf", gamma=0.1),
         #"Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
         "Isolation Forest": IsolationForest(n_estimators=1000,max_samples='auto',bootstrap=False,
                                             contamination=outliers_fraction,random_state=rng)
     }
-
-    # Compare given classifiers under given settings
-    xx, yy = np.meshgrid(np.linspace(-0.2, 1.3, 100), np.linspace(-0.2, 1.9, 100))
 
     # Fit the problem with varying cluster separation
     for i, offset in enumerate(clusters_separation):
@@ -133,8 +130,8 @@ def runDetectionSMS(outliers, inliers, X, outs):
         for i, (clf_name, clf) in enumerate(classifiers.items()):
             # fit the data and tag outliers
             clf.fit(X)
-            scores_pred = clf.decision_function(X)
-            threshold = stats.scoreatpercentile(scores_pred,100*outliers_fraction)
+            #scores_pred = clf.decision_function(X)
+            #threshold = stats.scoreatpercentile(scores_pred,300*outliers_fraction)
             y_pred = clf.predict(X)
 
             X_out_idx = np.where(y_pred == -1)[0]
