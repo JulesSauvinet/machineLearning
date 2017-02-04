@@ -155,43 +155,9 @@ def preProcessDatas(df):
     outliers = np.where(datas[:, datas.shape[1] - 1] == 0)
     inliers = np.where(datas[:, datas.shape[1] - 1] == 1)
 
-    #print np.shape(datas)
+    print np.shape(datas)
 
     return outs, datas, outliers, inliers
-# -------------------------------------------------------------------------------------------------------------------------#
-
-def isolationForest(outs, datas, outliers, inliers) :
-    clf = IsolationForest(n_estimators=500, max_samples='auto',
-                          random_state=0, bootstrap=False, n_jobs=1,
-                          contamination=(20. / datas.shape[0]) * 20)
-    clf.fit(datas)
-    y_pred = clf.predict(datas)
-    scores = clf.decision_function(datas)
-
-    X_out_idx = np.where(y_pred == -1)
-
-    outs = np.transpose(outs)
-    outs = outs[0]
-
-    X_out_idx = X_out_idx[0]
-
-    # Calcul de la matrice de confusion a la main
-    FP = len(np.intersect1d(outs, X_out_idx))
-    FN = len(X_out_idx) - FP
-
-    V = datas.shape[0] - len(X_out_idx)
-    VN = len(outs) - FP
-    VP = V - VN
-
-    print " Matrice de confusion"
-    print " ______________________________", "\n"  \
-          "| P\R      Spam        Ham     |","\n"  \
-          "| ---------------------------- |","\n"  \
-          "| Spam", " "*4, FP, " "*7, FN, " "*3, "|","\n"  \
-          "| ---------------------------- |","\n"  \
-          "| Ham ", " "*4, VN, " "*8, VP, " "*2, "|","\n"  \
-          "|_____________________________ |","\n"  \
-          
 # -------------------------------------------------------------------------------------------------------------------------#
 
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -202,37 +168,13 @@ if __name__ == "__main__":
     print ""
     print "Detection d'anomalie sur les donnees de Mickey"
     print ""
-    df=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ', header=None)
+    df=pd.read_csv('../../data/mouse-synthetic-data.txt', sep=' ', header=None)
     X = df.values[:, [0,1]]
 
-    inliers = X[0:len(X)-10]
-    outliers = X[len(X)-10:]
+    outliers = X[0:10]
+    inliers = X[11:len(X)]
 
     true_outs_idx = np.array([0,1,2,3,4,5,6,7,8,9])
 
     runDetection(outliers, inliers, X, true_outs_idx)
     # ************************************************************#
-
-
-    # ************************************************************#
-    # Test
-    # 2. Sur le	jeu de données des SMS
-    print ""
-    print "*"*75
-    print ""
-    print "Detection d'anomalie sur les donnees de SMS"
-    print ""
-    df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t', header=None)
-    outs, datas, outliers, inliers = preProcessDatas(df)
-
-    print ' Detection avec Isolation Forest'
-    #isolationForest(outs, datas, outliers, inliers)
-
-    
-    print ' Detection avec les 3 methodes'
-    #runDetection(outliers, inliers, X, true_outs_idx)
-
-
-
-    # ************************************************************#
-

@@ -1,76 +1,103 @@
 # coding=utf-8
 
 import matplotlib.pyplot as plt
+import matplotlib.font_manager
 import numpy as np
 import pandas as pd
 import scipy
+
+from scipy import stats
+from sklearn import svm
+from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import IsolationForest
 from sklearn.model_selection import train_test_split
 
 from prediction.lof import outliers
 from text_mining import textMining
 
-# Test Sur le jeu de données des SMS
-df2 = pd.read_csv('../data/SMSSpamCollection.data', sep='\t')
-
-#Preparation des donnees
-#representation	SVD des SMS et colonne Spam/Ham associee pour chaque SMS
-X, Y = textMining(df2, 1.0, 10, 500, 50, False, True)
-#print np.shape(X)
-
-#concatenation de la representation SVD des textes SMS et la categorie Spam/Ham
-Y = np.reshape(Y, (len(Y), 1))
-Z = np.concatenate((X, Y), axis=1)
-
-#extraction des SMS labelle Spam ou Ham
-Spam = Z[Z[:, Z.shape[1]-1] == 0]
-Ham =  Z[Z[:, Z.shape[1]-1] == 1]
-
-#le jeu de donnee sur lequel on va faire de la detection d'anomalie
-datas = np.concatenate((Ham,Spam), axis=0)
-
-#les index des outliers
-outs = np.argwhere(datas[:, datas.shape[1]-1] == 0)
-
-#on supprime la colonne avec la valeur cible Spam/Ham
-datas = scipy.delete(datas, datas.shape[1]-1, 1)
-
-print "Il y a dans les donnees :"
-print "-",np.shape(datas)[0], "Spam"
-print "-",np.shape(datas)[1]," "*1,"Ham\n"
-#on fit le modele
-clf = IsolationForest(n_estimators=100, max_samples='auto', random_state=0, bootstrap=True,n_jobs=1, contamination = 0.007)
-clf.fit(datas)
-y_pred = clf.predict(datas)
-
-#les outliers predits
-X_out_idx = np.where(y_pred != 1)
-
-#X_out_idx.append(2412)#, 2413, 2414, 2415])
-outs = np.transpose(outs)
-
-outs = outs[0]
-X_out_idx = X_out_idx[0]
-
-#print outs
-#print X_out_idx
-
-FP = len(np.intersect1d(outs, X_out_idx))
-FN = len(X_out_idx)-FP
-
-V = datas.shape[0]-len(X_out_idx)
-
-VN = len(outs) - FP
-VP = V - VN
-
-print "Matrice de confusion"
-print " ______________________________", "\n"  \
-      "| P\R      Ham        Spam     |","\n"  \
-      "| ---------------------------- |","\n"  \
-      "| Ham ", " "*3, VP, " "*7, FP, " "*4, "|","\n"  \
-      "| ---------------------------- |","\n"  \
-      "| Spam", " "*4, FN, " "*7, VN, " "*3, "|","\n"  \
-      "|_____________________________ |","\n"  \
 
 # -------------------------------------------------------------------------------------------------------------------------#
+def showRawDatas(df):
+    x = df.values[:, 0]
+    y = df.values[:, 1]
 
+    plt.plot(x,y, 'ro')
+    plt.title("Detection d'anomalie")
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+# -------------------------------------------------------------------------------------------------------------------------#
+
+# -------------------------------------------------------------------------------------------------------------------------#
+# Detection d'anomalie selon deux technique : isolationforest ou LOF
+def detectAnomaly(X,plot=True):
+    n_samples = 200
+    outliers_fraction = 0.25
+    clusters_separation = [0, 1, 2]
+
+    # define two outlier detection tools to be compared
+    classifiers = {
+        "One-Class SVM": svm.OneClassSVM(nu=0.95 * outliers_fraction + 0.05,kernel="rbf", gamma=0.1),
+        "Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
+        "Isolation Forest": IsolationForest(max_samples=n_samples,contamination=outliers_fraction,random_state=rng)
+    }
+
+    # Compare given classifiers under given settings
+    xx, yy = np.meshgrid(np.linspace(0, 1, 50), np.linspace(0, 1.5, 50))
+    n_inliers = int((1. - outliers_fraction) * n_samples)
+    n_outliers = int(outliers_fraction * n_samples)
+    ground_truth = np.ones(n_samples, dtype=int)
+    ground_truth[-n_outliers:] = -1
+
+    # X is the our data and it contains 20 outliers to 500 data rows
+    
+    # Fit the problem with varying cluster separation
+    for i, offset in enumerate(clusters_separation):
+        np.random.seed(42)
+
+        # Fit the model
+        plt.figure(figsize=(10.8, 3.6))
+        
+        for i, (clf_name, clf) in enumerate(classifiers.items()):
+            
+            # fit the data and tag outliers
+            clf.fit(X)
+            scores_pred = clf.decision_function(X)
+            threshold = stats.scoreatpercentile(scores_pred, 100 * outliers_fraction)
+            y_pred = clf.predict(X)
+            n_errors = (y_pred != ground_truth).sum()
+            
+            # plot the levels lines and the points
+            Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+            Z = Z.reshape(xx.shape)
+            
+            subplot = plt.subplot(1, 3, i + 1)
+            subplot.contourf(xx, yy, Z, levels=np.linspace(Z.min(), threshold, 7),cmap=plt.cm.Blues_r)
+            
+            a = subplot.contour(xx, yy, Z, levels=[threshold],linewidths=2, colors='red')
+            
+            subplot.contourf(xx, yy, Z, levels=[threshold, Z.max()],colors='orange')
+            
+            b = subplot.scatter(X[:-n_outliers, 0], X[:-n_outliers, 1], c='white')
+            c = subplot.scatter(X[-n_outliers:, 0], X[-n_outliers:, 1], c='black')
+            
+            subplot.axis('tight')
+            subplot.legend( [a.collections[0], b, c],
+                            ['learned decision function', 'true inliers', 'true outliers'],
+                            prop=matplotlib.font_manager.FontProperties(size=11),
+                            loc='lower right')
+            subplot.set_title("%d. %s (errors: %d)" % (i + 1, clf_name, n_errors))
+            subplot.set_xlim((-7, 7))
+            subplot.set_ylim((-7, 7))
+        plt.subplots_adjust(0.04, 0.1, 0.96, 0.92, 0.1, 0.26)
+
+    plt.show()
+
+
+# Test sur la base de données Mouse
+
+df3=pd.read_csv('../data/mouse-synthetic-data.txt', sep=' ')
+showRawDatas(df3)
+X = df3.values[:, [0,1]]
+print 'Detection des anomalies'
+detectAnomaly(X)
