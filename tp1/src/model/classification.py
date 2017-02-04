@@ -82,7 +82,7 @@ clfs2 =	{
     'ETC': ExtraTreesClassifier(n_estimators=20, max_depth=None, min_samples_split=10, random_state=0),
 
     # Scalable Linear Support Vector Machine for classification
-    'SVC': SVC(kernel='rbf', probability=True)
+    #'SVC': SVC(kernel='rbf', probability=True)
 }
 
 # -------------------------------------------------------------------------------------------------------------------------#
