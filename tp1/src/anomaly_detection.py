@@ -107,6 +107,70 @@ def runDetection(outliers, inliers, X, outs):
     plt.show()
 # -------------------------------------------------------------------------------------------------------------------------#
 
+
+# -------------------------------------------------------------------------------------------------------------------------#
+def runDetectionSMS(outliers, inliers, X, outs):
+    outliers_fraction = 20. / X.shape[0]
+    
+    rng = np.random.RandomState(69)
+    clusters_separation = [0]#, 1, 2]
+
+    # les differents outils de detection d'anomalies
+    classifiers = {
+        "One-Class SVM": svm.OneClassSVM(nu=0.95 *outliers_fraction,kernel="rbf", gamma=0.1),
+        #"Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
+        "Isolation Forest": IsolationForest(n_estimators=1000,max_samples='auto',bootstrap=False,
+                                            contamination=outliers_fraction,random_state=rng)
+    }
+
+    # Compare given classifiers under given settings
+    xx, yy = np.meshgrid(np.linspace(-0.2, 1.3, 100), np.linspace(-0.2, 1.9, 100))
+
+    # Fit the problem with varying cluster separation
+    for i, offset in enumerate(clusters_separation):
+        np.random.seed(69)
+
+        for i, (clf_name, clf) in enumerate(classifiers.items()):
+            # fit the data and tag outliers
+            clf.fit(X)
+            scores_pred = clf.decision_function(X)
+            threshold = stats.scoreatpercentile(scores_pred,100*outliers_fraction)
+            y_pred = clf.predict(X)
+
+            X_out_idx = np.where(y_pred == -1)[0]
+
+            outs2 = []
+            for out in outs :
+                for outS in out :
+                    outs2.append(outS)
+                
+            print clf_name
+            print "True outliers     :", outs2,"\n"
+            print "Outliers detected :", X_out_idx,"\n"
+
+            # Calcul de la matrice de confusion a la main
+            FP = len(np.intersect1d(outs, X_out_idx))
+            FN = len(X_out_idx) - FP
+
+            V = X.shape[0] - len(X_out_idx)
+            VN = len(outs) - FP
+            VP = V - VN
+
+            n_errors = (VN + FN)
+
+            print "Matrice de confusion"
+            print " _________________________________", "\n"  \
+                  "| P\R      Outliers    Inliers     |","\n"  \
+                  "| -------------------------------- |","\n"  \
+                  "| Outliers ", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
+                  "| -------------------------------- |","\n"  \
+                  "| Inliers  ", " "*4, VN, " "*7, VP, " "*3, "|","\n"  \
+                  "|_________________________________ |","\n"  \
+            
+
+# -------------------------------------------------------------------------------------------------------------------------#
+
+
 # -------------------------------------------------------------------------------------------------------------------------#
 # Plot les donnees (coordonnees a deux dimensions)
 def showRawDatas(df):
@@ -135,12 +199,15 @@ def preProcessDatas(df):
     # recuperer 20 spams aleatoirement
     sampleSpam = Spam[np.random.randint(0, Spam.shape[0], 20)]
 
+    # on concatene les donnees ham et spam
     datas = np.concatenate((halfHam, sampleSpam), axis=0)
     np.random.shuffle(datas)
 
+    # on cree une table de notre resultat
     df = pd.DataFrame(datas)
 
-    X, Y = textMining(df, 1., 1, 10000, 1300, False, False)
+    # on execute le code textMining
+    X, Y = textMining(df, 0.5, 1, 2500, 750, False, False)
     Y = np.reshape(Y, (len(Y), 1))
 
     # le jeu de donnee sur lequel on va faire de la detection d'anomalie
@@ -152,10 +219,9 @@ def preProcessDatas(df):
     # on supprime la colonne avec la valeur cible Spam/Ham
     datas = scipy.delete(datas, datas.shape[1] - 1, 1)
 
+    # on separe pour finir les donnees outliers des vraies donnees
     outliers = np.where(datas[:, datas.shape[1] - 1] == 0)
     inliers = np.where(datas[:, datas.shape[1] - 1] == 1)
-
-    #print np.shape(datas)
 
     return outs, datas, outliers, inliers
 # -------------------------------------------------------------------------------------------------------------------------#
@@ -223,13 +289,12 @@ if __name__ == "__main__":
     print "Detection d'anomalie sur les donnees de SMS"
     print ""
     df = pd.read_csv('../data/SMSSpamCollection.data', sep='\t', header=None)
-    outs, datas, outliers, inliers = preProcessDatas(df)
+    true_outs_idx, datas, outliers, inliers = preProcessDatas(df)
 
     #print ' Detection avec Isolation Forest'
     #isolationForest(outs, datas, outliers, inliers)
 
-    runDetection(outliers, inliers, X, true_outs_idx)
-
+    runDetectionSMS(outliers, inliers, datas, true_outs_idx)
 
 
     # ************************************************************#
