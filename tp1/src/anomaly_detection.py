@@ -117,10 +117,10 @@ def runDetectionSMS(outliers, inliers, X, outs):
 
     # les differents outils de detection d'anomalies
     classifiers = {
-        "One-Class SVM": svm.OneClassSVM(nu=0.95*outliers_fraction,kernel="rbf", gamma=0.1),
+        "One-Class SVM": svm.OneClassSVM(nu=(20. / X.shape[0]) * 20,kernel="rbf", gamma=0.1),
         #"Robust covariance": EllipticEnvelope(contamination=outliers_fraction),
-        "Isolation Forest": IsolationForest(n_estimators=1000,max_samples='auto',bootstrap=False,
-                                            contamination=outliers_fraction,random_state=rng)
+        "Isolation Forest": IsolationForest(n_estimators=500,max_samples='auto',bootstrap=False,n_jobs=1,
+                                            contamination=(20. / X.shape[0]) * 20,random_state=rng)
     }
 
     # Fit the problem with varying cluster separation
@@ -143,7 +143,7 @@ def runDetectionSMS(outliers, inliers, X, outs):
                 
             print clf_name
             print "True outliers     :", outs2,"\n"
-            print "Outliers detected :", X_out_idx,"\n"
+            #print "Outliers detected :", X_out_idx,"\n"
 
             # Calcul de la matrice de confusion a la main
             FP = len(np.intersect1d(outs, X_out_idx))
@@ -159,9 +159,9 @@ def runDetectionSMS(outliers, inliers, X, outs):
             print " _________________________________", "\n"  \
                   "| P\R      Outliers    Inliers     |","\n"  \
                   "| -------------------------------- |","\n"  \
-                  "| Outliers ", " "*4, FP, " "*8, FN, " "*4, "|","\n"  \
+                  "| Outliers "," "*2,FP," "*7,FN," "*5,"|","\n"  \
                   "| -------------------------------- |","\n"  \
-                  "| Inliers  ", " "*4, VN, " "*7, VP, " "*3, "|","\n"  \
+                  "| Inliers  "," "*2,VN," "*6,VP," "*4,"|","\n"  \
                   "|_________________________________ |","\n"  \
             
 
@@ -273,7 +273,7 @@ if __name__ == "__main__":
 
     true_outs_idx = np.array([0,1,2,3,4,5,6,7,8,9])
 
-    #runDetection(outliers, inliers, X, true_outs_idx)
+    runDetection(outliers, inliers, X, true_outs_idx)
     # ************************************************************#
 
 
@@ -289,7 +289,7 @@ if __name__ == "__main__":
     true_outs_idx, datas, outliers, inliers = preProcessDatas(df)
 
     #print ' Detection avec Isolation Forest'
-    #isolationForest(outs, datas, outliers, inliers)
+    #isolationForest(true_outs_idx, datas, outliers, inliers)
 
     runDetectionSMS(outliers, inliers, datas, true_outs_idx)
 
